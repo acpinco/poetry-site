@@ -37,7 +37,7 @@ The local `.env` activates the `local` Spring profile, which enables Swagger UI 
 
 2. Open http://localhost:8080/swagger-ui.html. The raw OpenAPI description is at http://localhost:8080/v3/api-docs.
 
-Swagger and its OpenAPI endpoints are disabled by default. Set `SWAGGER_ENABLED=true` only while you need manual API testing, then remove it or set it to `false`. Do not set `SPRING_PROFILES_ACTIVE=local` in production.
+Swagger and its OpenAPI endpoints are disabled by default. While `SWAGGER_ENABLED=true`, the site root (`/`) redirects to Swagger UI as a temporary landing page. Set it to `false` after manual API testing; the root redirect then disappears. Do not set `SPRING_PROFILES_ACTIVE=local` in production.
 
 ## Production deployment on the server
 
@@ -91,11 +91,12 @@ Internet -> Tailscale Funnel -> 127.0.0.1:8081 -> Docker Caddy -> application ->
    curl -iL http://127.0.0.1:8081/swagger-ui.html
    ```
 
-   A `200` response confirms the temporary public Swagger UI is available. Then move Funnel from the old host Caddy port to Docker Caddy:
+   A `200` response confirms the temporary public Swagger UI is available. Then replace the existing Funnel listener with Docker Caddy. This causes a brief public interruption but does not affect the local containers:
 
    ```bash
-   sudo tailscale funnel --https=443 http://127.0.0.1:8081
-   tailscale funnel status
+   sudo tailscale funnel reset
+   sudo tailscale funnel --bg --https=443 http://127.0.0.1:8081
+   sudo tailscale funnel status
    ```
 
 6. Test `https://thinkordrinkpoetry.tail0e35ab.ts.net/swagger-ui.html` from a non-tailnet browser. Keep the old host Caddy running as rollback until this succeeds. Afterwards, disable it:
