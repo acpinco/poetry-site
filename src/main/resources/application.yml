@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: think-or-drink-poetry
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:poetry_site}
+    username: ${POSTGRES_USER:poetry_app}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+
+app:
+  auth:
+    magic-link-base-url: ${MAGIC_LINK_BASE_URL:http://localhost:8080}
+    magic-link-ttl: PT15M
+    magic-link-request-limit: 5
+    session-ttl: P7D
+    session-cookie-name: poetry_session
+    secure-session-cookie: ${SECURE_SESSION_COOKIE:false}
