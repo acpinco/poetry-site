@@ -1,0 +1,11 @@
+# Do not send source-control metadata, secrets, local output, or editor files to Docker.
+.git/
+.env
+.env.*
+target/
+.idea/
+.vscode/
+*.iml
+*.log
+.DS_Store
+Thumbs.db

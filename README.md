@@ -39,6 +39,85 @@ The local `.env` activates the `local` Spring profile, which enables Swagger UI 
 
 Swagger and its OpenAPI endpoints are disabled by default. Set `SWAGGER_ENABLED=true` only while you need manual API testing, then remove it or set it to `false`. Do not set `SPRING_PROFILES_ACTIVE=local` in production.
 
+## Production deployment on the server
+
+Tailscale remains installed on the server host and terminates public HTTPS. The production Docker stack exposes Caddy only at `127.0.0.1:8081`; PostgreSQL and the application have no host ports. The intended path is:
+
+```text
+Internet -> Tailscale Funnel -> 127.0.0.1:8081 -> Docker Caddy -> application -> PostgreSQL
+```
+
+1. If the GitHub repository is private, give the server read-only access before cloning. On the server, generate a dedicated key:
+
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_github_poetry -C "thinkordrinkpoetry server"
+   cat ~/.ssh/id_ed25519_github_poetry.pub
+   ```
+
+   In the GitHub repository, open **Settings** -> **Deploy keys** -> **Add deploy key**, paste that public key, and leave **Allow write access** unchecked. Create `~/.ssh/config` on the server with this entry:
+
+   ```text
+   Host github.com
+     IdentityFile ~/.ssh/id_ed25519_github_poetry
+     IdentitiesOnly yes
+   ```
+
+2. On the server, clone the repository and enter it:
+
+   ```bash
+   git clone git@github.com:acpinco/poetry-site.git ~/projects/poetry-site
+   cd ~/projects/poetry-site
+   ```
+
+3. Create the server-only secret file and lock down its permissions:
+
+   ```bash
+   cp .env.production.example .env.production
+   chmod 600 .env.production
+   nano .env.production
+   ```
+
+   Replace the PostgreSQL password before starting. Set SMTP values when you are ready to test magic-link delivery. Do not add `.env.production` to Git.
+
+4. Build and start the stack on the server:
+
+   ```bash
+   ./scripts/deploy-server.sh
+   ```
+
+5. From the server, verify Docker Caddy responds locally before changing Funnel:
+
+   ```bash
+   curl -iL http://127.0.0.1:8081/swagger-ui.html
+   ```
+
+   A `200` response confirms the temporary public Swagger UI is available. Then move Funnel from the old host Caddy port to Docker Caddy:
+
+   ```bash
+   sudo tailscale funnel --https=443 http://127.0.0.1:8081
+   tailscale funnel status
+   ```
+
+6. Test `https://thinkordrinkpoetry.tail0e35ab.ts.net/swagger-ui.html` from a non-tailnet browser. Keep the old host Caddy running as rollback until this succeeds. Afterwards, disable it:
+
+   ```bash
+   sudo systemctl disable --now caddy
+   ```
+
+For an update, pull the reviewed Git commit first, then rerun the script:
+
+```bash
+git pull --ff-only
+./scripts/deploy-server.sh
+```
+
+To inspect the production stack:
+
+```bash
+sudo docker compose -f compose.production.yaml ps
+sudo docker compose -f compose.production.yaml logs --follow
+```
+
 ## Stopping services
 
 ```bash
