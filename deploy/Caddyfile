@@ -1,4 +1,8 @@
 :80 {
     encode zstd gzip
-    reverse_proxy app:8080
+    reverse_proxy app:8080 {
+        # Tailscale Funnel terminates public HTTPS before proxying to this
+        # HTTP-only listener. Preserve that original scheme for Spring.
+        header_up X-Forwarded-Proto https
+    }
 }

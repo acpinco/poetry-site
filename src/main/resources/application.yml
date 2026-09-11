@@ -27,6 +27,9 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  # Trust the HTTPS scheme supplied by the reverse proxy (Caddy/Funnel) when
+  # building redirects and OpenAPI URLs.
+  forward-headers-strategy: framework
 
 springdoc:
   api-docs:
