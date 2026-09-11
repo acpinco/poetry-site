@@ -77,7 +77,7 @@ Internet -> Tailscale Funnel -> 127.0.0.1:8081 -> Docker Caddy -> application ->
    nano .env.production
    ```
 
-   Replace the PostgreSQL password before starting. Set SMTP values when you are ready to test magic-link delivery. Do not add `.env.production` to Git.
+   Replace the PostgreSQL password before starting. Set SMTP values and `MAIL_FROM` when you are ready to test magic-link delivery. `MAIL_FROM` must use a domain verified with the email provider. Do not add `.env.production` to Git.
 
 4. Build and start the stack on the server:
 

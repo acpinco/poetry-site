@@ -35,6 +35,8 @@ springdoc:
     enabled: ${SWAGGER_ENABLED:false}
 
 app:
+  mail:
+    from: ${MAIL_FROM:Think or Drink Poetry <noreply@localhost>}
   auth:
     magic-link-base-url: ${MAGIC_LINK_BASE_URL:http://localhost:8080}
     magic-link-ttl: PT15M
