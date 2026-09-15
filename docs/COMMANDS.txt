@@ -131,6 +131,24 @@ curl -iL --max-time 10 http://127.0.0.1:8081/swagger-ui.html
 
 ---------
 
+Description: Import the one-time legacy CSV export into the running production Poetry Site PostgreSQL container. Use dry-run first. The CSV paths must be files on the server. This script is intentionally separate from normal deployment and requires an explicit apply argument.
+
+./scripts/import-legacy-data-production.sh dry-run /home/remote/users2022.csv /home/remote/poems2022.csv
+
+---------
+
+Description: Perform the one-time production legacy import after confirming the dry-run output. It skips already-mapped legacy records, so it does not duplicate a completed import.
+
+./scripts/import-legacy-data-production.sh apply /home/remote/users2022.csv /home/remote/poems2022.csv
+
+---------
+
+Description: Verify the production legacy import totals from inside the internal PostgreSQL container.
+
+sudo docker compose -f compose.production.yaml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -P pager=off -c "select count(*) as poets from poet; select count(*) as poems from poem; select p.email, p.first_name, p.last_name, p.account_status, p.role, count(po.id) as poem_count from poet p join legacy_poet_import_map l on l.poet_id = p.id left join poem po on po.poet_id = p.id where l.legacy_poet_id = 77 group by p.email, p.first_name, p.last_name, p.account_status, p.role;"'
+
+---------
+
 Description: Stop the production Poetry Site stack while preserving its PostgreSQL volume. Do not add --volumes unless database deletion is intentional.
 
 sudo docker compose -f compose.production.yaml down
