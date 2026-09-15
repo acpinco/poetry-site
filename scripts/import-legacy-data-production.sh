@@ -2,6 +2,12 @@
 
 set -Eeuo pipefail
 
+# Disabled after the one-time production legacy import. Production data is now
+# live and must never be cleared or re-imported through this helper.
+echo "Production legacy import is permanently disabled. Do not clear or re-import the production database." >&2
+exit 1
+
+# Historical implementation retained below only as a record of the completed import.
 if [[ $# -ne 3 || ( "$1" != "dry-run" && "$1" != "apply" ) ]]; then
   echo "Usage: $0 <dry-run|apply> <users.csv> <poems.csv>" >&2
   exit 2

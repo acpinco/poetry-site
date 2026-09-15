@@ -131,15 +131,7 @@ curl -iL --max-time 10 http://127.0.0.1:8081/swagger-ui.html
 
 ---------
 
-Description: Import the one-time legacy CSV export into the running production Poetry Site PostgreSQL container. Use dry-run first. The CSV paths must be files on the server. This script is intentionally separate from normal deployment and requires an explicit apply argument.
-
-./scripts/import-legacy-data-production.sh dry-run /home/remote/users2022.csv /home/remote/poems2022.csv
-
----------
-
-Description: Perform the one-time production legacy import after confirming the dry-run output. It skips already-mapped legacy records, so it does not duplicate a completed import.
-
-./scripts/import-legacy-data-production.sh apply /home/remote/users2022.csv /home/remote/poems2022.csv
+Description: The one-time production legacy importer is permanently disabled now that the site is live. Do not clear the production Docker volume or re-import legacy CSV data.
 
 ---------
 
