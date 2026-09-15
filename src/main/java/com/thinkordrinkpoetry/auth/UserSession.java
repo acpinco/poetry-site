@@ -37,10 +37,11 @@ class UserSession {
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
-    UserSession(String sessionTokenHash, String authenticatedEmail, Instant expiresAt) {
+    UserSession(String sessionTokenHash, String authenticatedEmail, UUID poetId, Instant expiresAt) {
         this.id = UuidCreator.getTimeOrderedEpoch();
         this.sessionTokenHash = sessionTokenHash;
         this.authenticatedEmail = authenticatedEmail;
+        this.poetId = poetId;
         this.expiresAt = expiresAt;
         this.lastUsedAt = Instant.now();
     }
@@ -51,5 +52,9 @@ class UserSession {
 
     void markUsed(Instant instant) {
         this.lastUsedAt = instant;
+    }
+
+    void attachPoet(UUID poetId) {
+        this.poetId = poetId;
     }
 }

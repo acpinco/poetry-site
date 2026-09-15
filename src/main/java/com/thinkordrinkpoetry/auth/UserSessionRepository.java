@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-interface UserSessionRepository extends JpaRepository<UserSession, UUID> {
+public interface UserSessionRepository extends JpaRepository<UserSession, UUID> {
     @Query("""
             select session from UserSession session
             where session.sessionTokenHash = :tokenHash
@@ -20,4 +20,8 @@ interface UserSessionRepository extends JpaRepository<UserSession, UUID> {
     @Modifying
     @Query("delete from UserSession session where session.expiresAt <= :now or session.revokedAt is not null")
     int deleteExpiredOrRevokedBefore(@Param("now") Instant now);
+
+    @Modifying
+    @Query("delete from UserSession session where session.poetId = :poetId")
+    int deleteByPoetId(@Param("poetId") UUID poetId);
 }

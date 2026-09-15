@@ -1,8 +1,29 @@
 :80 {
     encode zstd gzip
-    reverse_proxy app:8080 {
-        # Tailscale Funnel terminates public HTTPS before proxying to this
-        # HTTP-only listener. Preserve that original scheme for Spring.
-        header_up X-Forwarded-Proto https
+
+    handle /api/* {
+        reverse_proxy app:8080 {
+            # Cloudflare Tunnel (and the prior Tailscale Funnel) terminate public
+            # HTTPS before proxying to this HTTP-only listener.
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    handle /swagger-ui* {
+        reverse_proxy app:8080 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    handle /v3/* {
+        reverse_proxy app:8080 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
     }
 }

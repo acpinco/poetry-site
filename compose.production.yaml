@@ -34,7 +34,10 @@ services:
       - proxy
 
   caddy:
-    image: caddy:2.11.4-alpine
+    build:
+      context: .
+      dockerfile: deploy/Caddy.Dockerfile
+    image: think-or-drink-poetry-caddy:local
     restart: unless-stopped
     ports:
       - "127.0.0.1:8081:80"

@@ -42,8 +42,11 @@ app:
     from: ${MAIL_FROM:Think or Drink Poetry <noreply@localhost>}
   auth:
     magic-link-base-url: ${MAGIC_LINK_BASE_URL:http://localhost:8080}
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
     magic-link-ttl: PT15M
     magic-link-request-limit: 5
     session-ttl: P7D
     session-cookie-name: poetry_session
     secure-session-cookie: ${SECURE_SESSION_COOKIE:false}
+    admin-email: ${ADMIN_EMAIL:}
+    admin-contact-email: ${ADMIN_CONTACT_EMAIL:timberlinelab@gmail.com}

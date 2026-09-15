@@ -6,9 +6,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.auth")
 public record AuthProperties(
         String magicLinkBaseUrl,
+        String frontendBaseUrl,
         Duration magicLinkTtl,
         int magicLinkRequestLimit,
         Duration sessionTtl,
         String sessionCookieName,
-        boolean secureSessionCookie) {
+        boolean secureSessionCookie,
+        String adminEmail,
+        String adminContactEmail) {
 }

@@ -1,0 +1,178 @@
+THINK OR DRINK POETRY - APP COMMAND REFERENCE
+===============================================
+
+This file intentionally omits general Linux, Git, SSH, Vim, and basic
+environment-variable commands. It contains commands specific to this project,
+its Docker Compose stack, Caddy, Cloudflare Tunnel, mail testing, and tests.
+
+LOCAL DEVELOPMENT
+-----------------
+
+Description: Validate the Poetry Site local Docker Compose configuration.
+
+docker compose config
+
+---------
+
+Description: Build and start this project's local PostgreSQL 18, Mailpit, Spring Boot application, and Vite frontend. The frontend is available at http://localhost:5173 and Swagger at http://localhost:8080/swagger-ui.html.
+
+docker compose up -d --build
+
+---------
+
+Description: Show the status and local ports for this project's PostgreSQL, Mailpit, and frontend development services.
+
+docker compose ps
+
+---------
+
+Description: Follow logs from all local Poetry Site services, including the Vite frontend.
+
+docker compose logs --follow
+
+---------
+
+Description: Stop the local Poetry Site containers without deleting the named PostgreSQL data volume.
+
+docker compose down
+
+---------
+
+Description: Follow the Spring Boot container logs in the local Docker development stack. Use this instead of starting ./mvnw spring-boot:run while the Compose app service is running.
+
+docker compose logs --follow app
+
+---------
+
+Description: Run the Poetry Site automated test suite. Integration tests create an isolated temporary PostgreSQL 18 Testcontainers database.
+
+mvn test
+
+---------
+
+Description: Open local Swagger API documentation after starting the Spring Boot application.
+
+http://localhost:8080/swagger-ui.html
+
+---------
+
+Description: Open the Figma-designed account-creation frontend after starting the local Docker development stack.
+
+http://localhost:5173
+
+---------
+
+Description: Build the frontend exactly as its production Caddy image does. This works even when Node.js is not installed on the WSL host.
+
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/frontend:/workspace" -w /workspace node:22-alpine sh -c 'npm ci && npm run build'
+
+---------
+
+Description: Open the local Mailpit inbox to view magic-link emails generated during development.
+
+http://localhost:8025
+
+
+PRODUCTION DOCKER STACK
+-----------------------
+
+Description: Validate the production Compose file against the committed safe example environment. This does not start containers.
+
+POETRY_ENV_FILE=.env.production.example docker compose -f compose.production.yaml config --quiet
+
+---------
+
+Description: Deploy the current Poetry Site server checkout. The script validates Compose, builds and starts the app, validates Caddy, reloads Caddy, and prints service status.
+
+./scripts/deploy-server.sh
+
+---------
+
+Description: Show the Poetry Site production container status and loopback port binding.
+
+sudo docker compose -f compose.production.yaml ps
+
+---------
+
+Description: Follow only Spring Boot application logs in the production Poetry Site stack.
+
+sudo docker compose -f compose.production.yaml logs --follow app
+
+---------
+
+Description: Show recent Spring Boot application logs without following new output.
+
+sudo docker compose -f compose.production.yaml logs --since=15m app
+
+---------
+
+Description: Validate the deployed Caddyfile inside the Poetry Site Caddy container.
+
+sudo docker compose -f compose.production.yaml exec -T caddy \
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+---------
+
+Description: Restart only the Poetry Site Caddy container. Use after changing deploy/Caddyfile; Caddy reads its mounted configuration when it starts.
+
+sudo docker compose -f compose.production.yaml restart caddy
+
+---------
+
+Description: Recreate only the Poetry Site application container after changing production mail or application configuration. PostgreSQL data and Caddy remain running.
+
+sudo docker compose -f compose.production.yaml up --detach --force-recreate --no-deps app
+
+---------
+
+Description: Test the deployed Docker Caddy and Spring Boot application locally on the server before testing public Cloudflare Tunnel access.
+
+curl -iL --max-time 10 http://127.0.0.1:8081/swagger-ui.html
+
+---------
+
+Description: Stop the production Poetry Site stack while preserving its PostgreSQL volume. Do not add --volumes unless database deletion is intentional.
+
+sudo docker compose -f compose.production.yaml down
+
+
+PUBLIC API AND EMAIL VERIFICATION
+---------------------------------
+
+Description: Open the public Swagger landing page through Cloudflare Tunnel.
+
+https://poetry.timberlinelab.com/swagger-ui.html
+
+---------
+
+Description: Request a production magic-link email without Swagger. Replace the sample recipient with an address you are authorized to test. A healthy request returns HTTP 204.
+
+curl -i -X POST 'https://poetry.timberlinelab.com/api/auth/magic-links' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com"}'
+
+---------
+
+Description: The production mail sender configuration required for Resend. This belongs in the server-only .env.production file, never Git. The sender domain must be verified in Resend.
+
+MAIL_FROM=Think or Drink Poetry <noreply@poetry.timberlinelab.com>
+
+
+CLOUDFLARE TUNNEL
+-----------------
+
+Description: Show the Cloudflare Tunnel service status and recent diagnostic output on the server.
+
+sudo systemctl status cloudflared --no-pager -n 30
+
+---------
+
+Description: Follow live Cloudflare Tunnel service logs while diagnosing public routing.
+
+sudo journalctl -u cloudflared --follow
+
+---------
+
+Description: Restart the Cloudflare Tunnel service after changing its server-side tunnel configuration.
+
+sudo systemctl restart cloudflared
