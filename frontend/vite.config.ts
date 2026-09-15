@@ -12,7 +12,11 @@ export default defineConfig({
     proxy: {
       "/api": apiProxyTarget,
       "/swagger-ui": apiProxyTarget,
-      "/v3": apiProxyTarget
+      "/v3": apiProxyTarget,
+      "/poems": apiProxyTarget,
+      "/poets": apiProxyTarget,
+      "/sitemap.xml": apiProxyTarget,
+      "/robots.txt": apiProxyTarget
     }
   }
 });

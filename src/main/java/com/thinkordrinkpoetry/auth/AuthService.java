@@ -73,7 +73,6 @@ public class AuthService {
         UUID poetId = poets.findByEmail(loginToken.getEmail()).map(Poet::getId).orElse(null);
         UserSession session = sessions.save(new UserSession(
                 secretTokenService.hash(sessionToken), loginToken.getEmail(), poetId, sessionExpiry));
-        loginTokens.delete(loginToken);
         return new LoginResult(sessionToken, session.getExpiresAt(), poetId != null);
     }
 

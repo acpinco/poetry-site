@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import ravenLogo from "./imports/Raven_Logo.png";
+import Home from "./Home";
 
 function FeatherDecor({ className }: { className?: string }) {
   return <svg viewBox="0 0 40 120" fill="none" className={className} aria-hidden="true">
@@ -11,6 +12,7 @@ function FeatherDecor({ className }: { className?: string }) {
 }
 
 export default function App() {
+  const [path, setPath] = useState(window.location.pathname);
   const [screen, setScreen] = useState<"loading" | "login" | "profile">("loading");
   const [existingProfile, setExistingProfile] = useState(false);
   const [email, setEmail] = useState("");
@@ -26,7 +28,9 @@ export default function App() {
   const inputBase = "w-full bg-[#0e1018] border text-[#e4ddd0] placeholder-[#4a4857] rounded px-4 py-3 text-sm outline-none transition-all duration-300";
   const inputStyle = (field: string) => `${inputBase} ${focused === field ? "border-[#c9a84c] shadow-[0_0_0_1px_rgba(201,168,76,0.25)]" : "border-[#2a2840] hover:border-[#3d3660]"}`;
 
-  useEffect(() => { void loadSession(); }, []);
+  useEffect(() => { if (path !== "/home") void loadSession(); }, [path]);
+
+  function navigate(nextPath: string) { window.history.pushState({}, "", nextPath); setPath(nextPath); }
 
   async function loadSession() {
     try {
@@ -34,7 +38,12 @@ export default function App() {
       if (!session.ok) { setScreen("login"); return; }
       const profile = await fetch("/api/poets/me", { credentials: "include" });
       if (profile.ok) {
-        window.location.assign("/swagger-ui.html");
+        if (path === "/account/setup") {
+          const data = await profile.json();
+          setFirstName(data.firstName ?? ""); setLastName(data.lastName ?? "");
+          setPenName(data.penName === data.fullName ? "" : (data.penName ?? "")); setBio(data.bio ?? "");
+          setExistingProfile(true); setScreen("profile");
+        } else navigate("/home");
         return;
       }
       setScreen("profile");
@@ -63,10 +72,12 @@ export default function App() {
         if (response.status === 401 || response.status === 403) throw new Error("Please sign in with a magic link before creating your profile.");
         throw new Error("We could not save your profile. Please try again.");
       }
-      window.location.assign("/swagger-ui.html");
+      navigate("/home");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "We could not save your profile."); }
     finally { setSubmitting(false); }
   }
+
+  if (path === "/home") return <Home onNavigate={navigate} />;
 
   return <main className="min-h-screen flex items-center justify-center px-4 py-16 relative overflow-hidden" style={{ background: "radial-gradient(ellipse at 30% 20%, #12102a 0%, #080a0f 60%)" }}>
     <FeatherDecor className="absolute top-10 left-8 w-8 h-24 feather-float opacity-60 rotate-12" />
@@ -82,6 +93,7 @@ export default function App() {
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}{message && <p role="status" className="text-sm text-[#e8c97a]">{message}</p>}
           <div className="h-px" style={{ background: "linear-gradient(90deg, transparent, #2a2840, transparent)" }} />
           <button type="submit" disabled={submitting} className="w-full py-3.5 text-sm tracking-widest uppercase disabled:opacity-60" style={{ letterSpacing: ".2em", background: "linear-gradient(135deg, #c9a84c 0%, #a8872d 100%)", color: "#080a0f", fontWeight: 600, borderRadius: "2px", border: "none", cursor: "pointer" }}>{submitting ? "Sending…" : "Take Flight"}</button>
+          <button type="button" onClick={() => navigate("/home")} className="w-full py-3 text-sm tracking-widest uppercase text-[#c9a84c]" style={{ letterSpacing: ".14em", border: "1px solid #3d3660", background: "transparent", cursor: "pointer" }}>Show Me What You Got</button>
         </form> : <form onSubmit={submit} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="First Name" id="firstName" value={firstName} onChange={setFirstName} focused={focused} setFocused={setFocused} required placeholder="Eleanor" inputStyle={inputStyle} />

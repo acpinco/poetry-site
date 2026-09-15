@@ -1,5 +1,6 @@
 package com.thinkordrinkpoetry.auth;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -19,8 +20,11 @@ class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/").permitAll()
+                        .requestMatchers("/poems/**", "/poets/**", "/sitemap.xml", "/robots.txt").permitAll()
                         .requestMatchers("/api/auth/magic-links", "/api/auth/magic-links/**", "/api/auth/branding/**").permitAll()
+                        .requestMatchers("/api/discovery/**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

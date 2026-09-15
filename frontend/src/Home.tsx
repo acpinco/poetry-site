@@ -1,0 +1,109 @@
+import { useEffect, useState } from "react";
+import ravenLogo from "./imports/Raven_Logo.png";
+
+type Poet = { poetId: string; displayName: string; bio: string | null; poemCount: number };
+type PoemSummary = { poemId: string; title: string; excerpt: string };
+type Poem = { poemId: string; poetId: string; title: string; poem: string; poetDisplayName: string };
+type HomeData = { poet: Poet; poems: PoemSummary[]; selectedPoem: Poem };
+type SearchResults = { poets: Poet[]; poems: Array<PoemSummary & { poetId: string; poetDisplayName: string }> };
+
+export default function Home({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const [data, setData] = useState<HomeData | null>(null);
+  const [active, setActive] = useState<Poem | null>(null);
+  const [viewer, setViewer] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResults | null>(null);
+  const [directory, setDirectory] = useState<Poet[] | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => { void load(); }, []);
+
+  async function load() {
+    try {
+      const [home, me] = await Promise.all([fetch("/api/discovery/home"), fetch("/api/auth/me", { credentials: "include" })]);
+      if (!home.ok) throw new Error("No poems are available yet.");
+      const value = await home.json();
+      setData(value);
+      setActive(value.selectedPoem);
+      setViewer(me.ok);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to load poems.");
+    }
+  }
+
+  async function loadDirectory() {
+    if (directory) return;
+    const response = await fetch("/api/discovery/poets");
+    if (response.ok) setDirectory(await response.json());
+  }
+
+  async function choosePoem(id: string) {
+    const response = await fetch(`/api/discovery/poems/${id}`);
+    if (response.ok) setActive(await response.json());
+    closeSearch();
+  }
+
+  async function search(value: string) {
+    setQuery(value);
+    if (value.trim().length < 2) { setResults(null); return; }
+    const response = await fetch(`/api/discovery/search?q=${encodeURIComponent(value)}`);
+    if (response.ok) setResults(await response.json());
+  }
+
+  async function choosePoet(id: string) {
+    const response = await fetch(`/api/discovery/poets/${id}/poems`);
+    if (!response.ok) return;
+    const value = await response.json();
+    const poem = value.poems[0] ? await fetch(`/api/discovery/poems/${value.poems[0].poemId}`).then(response => response.json()) : null;
+    setData({ poet: value.poet, poems: value.poems, selectedPoem: poem });
+    setActive(poem);
+    closeSearch();
+  }
+
+  function closeSearch() { setResults(null); setQuery(""); setSearchFocused(false); }
+
+  async function myPoems() {
+    const [poemsResponse, profileResponse] = await Promise.all([fetch("/api/poems", { credentials: "include" }), fetch("/api/poets/me", { credentials: "include" })]);
+    if (!poemsResponse.ok || !profileResponse.ok) return;
+    const poems = await poemsResponse.json();
+    if (!poems.length) { setError("You have not written a poem yet."); return; }
+    const profile = await profileResponse.json();
+    const summaries = poems.map((poem: any) => ({ poemId: poem.poemId, title: poem.title, excerpt: poem.poem.replace(/\s+/g, " ").slice(0, 160) }));
+    const detail = await fetch(`/api/discovery/poems/${summaries[0].poemId}`).then(response => response.json());
+    const poet = { poetId: profile.poetId, displayName: profile.penName, bio: profile.bio, poemCount: poems.length };
+    setData({ poet, poems: summaries, selectedPoem: detail });
+    setActive(detail);
+  }
+
+  async function signOut() { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); onNavigate("/"); }
+
+  if (error) return <main className="grid min-h-screen place-items-center bg-[#080a0f] text-[#e4ddd0]">{error}</main>;
+  if (!data || !active) return <main className="grid min-h-screen place-items-center bg-[#080a0f] text-[#8b8992]">Gathering poems…</main>;
+  const showingDirectory = searchFocused && query.trim().length < 2;
+  const showingResults = searchFocused && query.trim().length >= 2 && results;
+
+  return <main className="min-h-screen bg-[#080a0f] text-[#e4ddd0]">
+    <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-[#1e2235] bg-[#0e1018ee] px-4 py-3 backdrop-blur sm:px-7">
+      <div className="relative w-64 max-w-[45vw]">
+        <input value={query} onChange={event => void search(event.target.value)} onFocus={() => { setSearchFocused(true); void loadDirectory(); }} onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)} placeholder="Search poets or poems…" className="w-full border border-[#2a2840] bg-[#080a0f] px-3 py-2 text-xs outline-none focus:border-[#c9a84c]" />
+        {viewer && <button onClick={() => void myPoems()} className="mt-1 text-xs text-[#c9a84c]">My Poems</button>}
+        {(showingDirectory || showingResults) && <div className="absolute z-30 mt-1 max-h-80 w-full overflow-auto border border-[#2a2840] bg-[#161a27]">
+          {showingDirectory && <><p className="border-b border-[#2a2840] px-3 py-2 text-[10px] uppercase tracking-widest text-[#8b8992]">All poets</p>{directory?.map(poet => <button key={poet.poetId} onClick={() => void choosePoet(poet.poetId)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poet.displayName} <span className="text-[#8b8992]">· {poet.poemCount} poems</span></button>)}</>}
+          {showingResults && <>{results.poets.map(poet => <button key={poet.poetId} onClick={() => void choosePoet(poet.poetId)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poet.displayName} <span className="text-[#8b8992]">· {poet.poemCount} poems</span></button>)}{results.poems.map(poem => <button key={poem.poemId} onClick={() => void choosePoem(poem.poemId)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poem.title} <span className="text-[#8b8992]">by {poem.poetDisplayName}</span></button>)}</>}
+        </div>}
+      </div>
+      <img src={ravenLogo} alt="Think or Drink Poetry" className="h-10 max-w-[35vw] object-contain" />
+      {viewer ? <div className="flex gap-3 text-xs"><button onClick={() => onNavigate("/account/setup")} className="text-[#c9a84c]">Profile</button><button onClick={() => void signOut()} className="text-[#8b8992]">Sign Out</button></div> : <button onClick={() => onNavigate("/")} className="border border-[#c9a84c] px-3 py-2 text-xs uppercase tracking-wider text-[#c9a84c]">Sign In</button>}
+    </header>
+    <div className="flex min-h-[calc(100vh-65px)]">
+      <aside className="w-64 shrink-0 border-r border-[#1e2235] bg-[#0d0f1a]"><div className="border-b border-[#1e2235] p-4"><p className="text-xs uppercase tracking-widest text-[#c9a84c]">{data.poet.displayName}</p><p className="mt-1 text-xs text-[#8b8992]">{data.poet.poemCount} poems</p></div>{data.poems.map(poem => <button key={poem.poemId} onClick={() => void choosePoem(poem.poemId)} className={`block w-full border-b border-[#1a1d2a] px-4 py-4 text-left ${active.poemId === poem.poemId ? "border-l-2 border-l-[#c9a84c] bg-[#161a27]" : ""}`}><p className="text-sm">{poem.title}</p><p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs italic text-[#8b8992]">{poem.excerpt}</p></button>)}</aside>
+      <article className="mx-auto max-w-2xl flex-1 px-6 py-12"><p className="text-center text-xs uppercase tracking-[.25em] text-[#c9a84c]">{active.poetDisplayName}</p><h1 className="mt-3 text-center font-serif text-4xl">{active.title}</h1><p className="mt-3 text-center text-xs"><a href={`/poems/${active.poemId}/${slugify(active.title)}`} className="text-[#c9a84c]">Open shareable poem page</a></p><div className="mx-auto my-6 h-px w-48 bg-[#c9a84c55]" /><div className="whitespace-pre-wrap font-serif text-lg italic leading-loose text-[#c8c0b0]">{active.poem}</div></article>
+    </div>
+  </main>;
+}
+
+function slugify(value: string) {
+  const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return slug || "poem";
+}

@@ -26,17 +26,22 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(prefix = "app.legacy-import", name = "enabled", havingValue = "true")
 class LegacyImportRunner implements ApplicationRunner {
     private static final Charset LEGACY_CHARSET = Charset.forName("windows-1252");
+    /** Known ownership corrections for the historical export; do not alter the source CSV. */
+    private static final Map<Long, String> CLAIMED_LEGACY_EMAILS = Map.of(77L, "acpinco01@gmail.com");
     private final JdbcTemplate jdbc;
     private final Path usersFile;
     private final Path poemsFile;
     private final boolean apply;
+    private final String adminEmail;
     private final Map<Long, UUID> poetMappings = new HashMap<>();
     private final Set<String> importedEmails = new HashSet<>();
 
     LegacyImportRunner(JdbcTemplate jdbc, @Value("${app.legacy-import.users-file}") Path usersFile,
             @Value("${app.legacy-import.poems-file}") Path poemsFile,
-            @Value("${app.legacy-import.apply:false}") boolean apply) {
+            @Value("${app.legacy-import.apply:false}") boolean apply,
+            @Value("${app.auth.admin-email:}") String adminEmail) {
         this.jdbc = jdbc; this.usersFile = usersFile; this.poemsFile = poemsFile; this.apply = apply;
+        this.adminEmail = normalize(adminEmail);
     }
 
     @Override
@@ -54,10 +59,12 @@ class LegacyImportRunner implements ApplicationRunner {
         try (Reader reader = Files.newBufferedReader(usersFile, LEGACY_CHARSET)) {
             for (CSVRecord row : CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build().parse(reader)) {
                 long legacyId = Long.parseLong(row.get("poet_id").trim());
+                String claimedEmail = CLAIMED_LEGACY_EMAILS.get(legacyId);
                 UUID existing = mappedPoet(legacyId);
-                if (existing != null) { poetMappings.put(legacyId, existing); continue; }
-                String email = normalize(row.get("email"));
+                if (existing != null) { poetMappings.put(legacyId, reconcileClaim(existing, claimedEmail)); continue; }
+                String email = claimedEmail == null ? normalize(row.get("email")) : claimedEmail;
                 boolean fallback = email.isBlank() || emailTaken(email) || !importedEmails.add(email);
+                if (claimedEmail != null && emailTaken(email)) fallback = false;
                 if (fallback) { email = "legacy-poet-" + legacyId + "@doesnotexist.com"; counts.fallbackEmails++; }
                 importedEmails.add(email);
                 String first = useful(row.get("first_name")) ? row.get("first_name").trim() : email;
@@ -65,10 +72,8 @@ class LegacyImportRunner implements ApplicationRunner {
                 first = limit(first, 100); last = limit(last, 100);
                 LocalDate submitted = LocalDate.parse(row.get("date_submitted").trim().replace('/', '-'));
                 if (apply) {
-                    UUID poetId = jdbc.queryForObject("""
-                            insert into poet (email, first_name, last_name, legacy_submitted_on, account_status, role)
-                            values (?, ?, ?, ?, 'LEGACY_UNCLAIMED', 'USER') returning id
-                            """, UUID.class, email, first, last, Date.valueOf(submitted));
+                    UUID poetId = claimedEmail == null ? createLegacyPoet(email, first, last, submitted)
+                            : claimedPoet(email, first, last, submitted);
                     jdbc.update("insert into legacy_poet_import_map (legacy_poet_id, poet_id) values (?, ?)", legacyId, poetId);
                     poetMappings.put(legacyId, poetId);
                 } else {
@@ -103,6 +108,39 @@ class LegacyImportRunner implements ApplicationRunner {
 
     private boolean mapped(String table, String column, long id) { return Boolean.TRUE.equals(jdbc.queryForObject("select exists(select 1 from " + table + " where " + column + " = ?)", Boolean.class, id)); }
     private UUID mappedPoet(long legacyId) { return jdbc.query("select poet_id from legacy_poet_import_map where legacy_poet_id = ?", rs -> rs.next() ? rs.getObject(1, UUID.class) : null, legacyId); }
+    private UUID createLegacyPoet(String email, String first, String last, LocalDate submitted) { return jdbc.queryForObject("""
+            insert into poet (email, first_name, last_name, legacy_submitted_on, account_status, role)
+            values (?, ?, ?, ?, 'LEGACY_UNCLAIMED', 'USER') returning id
+            """, UUID.class, email, first, last, Date.valueOf(submitted)); }
+    private UUID claimedPoet(String email, String first, String last, LocalDate submitted) {
+        UUID existing = poetByEmail(email);
+        if (existing != null) { activateClaim(existing); return existing; }
+        return jdbc.queryForObject("""
+                insert into poet (email, first_name, last_name, legacy_submitted_on, account_status, role)
+                values (?, ?, ?, ?, 'ACTIVE', ?) returning id
+                """, UUID.class, email, first, last, Date.valueOf(submitted), roleFor(email));
+    }
+    private UUID reconcileClaim(UUID mappedPoetId, String claimedEmail) {
+        if (!apply || claimedEmail == null) return mappedPoetId;
+        UUID account = poetByEmail(claimedEmail);
+        if (account == null) {
+            jdbc.update("update poet set email = ? where id = ?", claimedEmail, mappedPoetId);
+            activateClaim(mappedPoetId);
+            return mappedPoetId;
+        }
+        if (!account.equals(mappedPoetId)) {
+            if (legacyIdForPoet(account) != null) throw new IllegalStateException("Claimed account is already linked to another legacy poet.");
+            jdbc.update("update poem set poet_id = ? where poet_id = ?", account, mappedPoetId);
+            jdbc.update("update legacy_poet_import_map set poet_id = ? where poet_id = ?", account, mappedPoetId);
+            jdbc.update("delete from poet where id = ?", mappedPoetId);
+        }
+        activateClaim(account);
+        return account;
+    }
+    private UUID poetByEmail(String email) { return jdbc.query("select id from poet where email = ?", rs -> rs.next() ? rs.getObject(1, UUID.class) : null, email); }
+    private Long legacyIdForPoet(UUID poetId) { return jdbc.query("select legacy_poet_id from legacy_poet_import_map where poet_id = ?", rs -> rs.next() ? rs.getLong(1) : null, poetId); }
+    private void activateClaim(UUID poetId) { jdbc.update("update poet set account_status = 'ACTIVE', locked_at = null, locked_reason = null, role = ? where id = ?", roleFor("acpinco01@gmail.com"), poetId); }
+    private String roleFor(String email) { return email.equals(adminEmail) ? "ADMIN" : "USER"; }
     private boolean emailTaken(String email) { return Boolean.TRUE.equals(jdbc.queryForObject("select exists(select 1 from poet where email = ?)", Boolean.class, email)); }
     private static boolean useful(String value) { String v=value == null ? "" : value.trim(); return !v.isEmpty() && !v.equals("-") && !v.equals("--"); }
     private static String normalize(String value) { return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT); }

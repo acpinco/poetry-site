@@ -14,9 +14,9 @@ docker compose config
 
 ---------
 
-Description: Build and start this project's local PostgreSQL 18, Mailpit, Spring Boot application, and Vite frontend. The frontend is available at http://localhost:5173 and Swagger at http://localhost:8080/swagger-ui.html.
+Description: Build and start this project's local PostgreSQL 18, Mailpit, Spring Boot application, and Vite frontend. It waits for Spring to be ready, shows service status, and prints the local URLs.
 
-docker compose up -d --build
+./scripts/deploy-dev.sh
 
 ---------
 

@@ -2,6 +2,7 @@
     encode zstd gzip
 
     handle /api/* {
+        header X-Robots-Tag "noindex, nofollow"
         reverse_proxy app:8080 {
             # Cloudflare Tunnel (and the prior Tailscale Funnel) terminate public
             # HTTPS before proxying to this HTTP-only listener.
@@ -10,15 +11,33 @@
     }
 
     handle /swagger-ui* {
+        header X-Robots-Tag "noindex, nofollow"
         reverse_proxy app:8080 {
             header_up X-Forwarded-Proto https
         }
     }
 
     handle /v3/* {
+        header X-Robots-Tag "noindex, nofollow"
         reverse_proxy app:8080 {
             header_up X-Forwarded-Proto https
         }
+    }
+
+    handle /poems/* {
+        reverse_proxy app:8080
+    }
+
+    handle /poets/* {
+        reverse_proxy app:8080
+    }
+
+    handle /sitemap.xml {
+        reverse_proxy app:8080
+    }
+
+    handle /robots.txt {
+        reverse_proxy app:8080
     }
 
     handle {
