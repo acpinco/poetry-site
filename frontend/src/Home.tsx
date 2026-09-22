@@ -114,7 +114,7 @@ export default function Home({ initialMyPoemId, showMyPoems, onNavigate }: { ini
     await myPoems();
   }
 
-  async function signOut() { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); onNavigate("/"); }
+  async function signOut() { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); onNavigate("/sign-in"); }
 
   if (error) return <main className="grid min-h-screen place-items-center bg-[#080a0f] text-[#e4ddd0]">{error}</main>;
   if (!data || !active) return <main className="grid min-h-screen place-items-center bg-[#080a0f] text-[#8b8992]">Gathering poems…</main>;
@@ -133,7 +133,7 @@ export default function Home({ initialMyPoemId, showMyPoems, onNavigate }: { ini
       </div>
       <img src={ravenLogo} alt="Think or Drink Poetry" className="h-10 max-w-[35vw] object-contain" />
       <p className="order-last w-full text-center text-base italic text-[#c8c0b0]">Ability to add and remove your own poems coming next week!</p>
-      {viewer ? <div className="flex gap-3 text-xs"><button onClick={() => onNavigate("/account/setup")} className="text-[#c9a84c]">Profile</button><button onClick={() => void signOut()} className="text-[#8b8992]">Sign Out</button></div> : <button onClick={() => onNavigate("/")} className="border border-[#c9a84c] px-3 py-2 text-xs uppercase tracking-wider text-[#c9a84c]">Sign In</button>}
+      {viewer ? <div className="flex gap-3 text-xs"><button onClick={() => onNavigate("/account/setup")} className="text-[#c9a84c]">Profile</button><button onClick={() => void signOut()} className="text-[#8b8992]">Sign Out</button></div> : <button onClick={() => onNavigate("/sign-in")} className="border border-[#c9a84c] px-3 py-2 text-xs uppercase tracking-wider text-[#c9a84c]">Sign In</button>}
     </header>
     <div className="flex min-h-0 flex-1">
       <aside className="poetry-scroll h-full w-64 shrink-0 overflow-y-auto border-r border-[#1e2235] bg-[#0d0f1a]"><div className="border-b border-[#1e2235] p-4"><p className="text-xs uppercase tracking-widest text-[#c9a84c]">{data.poet.displayName}</p>{showingRandomSelection && <p className="mt-1 text-xs italic text-[#c8c0b0]">Random poet of the day</p>}<p className="mt-1 text-xs text-[#8b8992]">{data.poet.poemCount} poems</p></div>{data.poems.map(poem => <button key={poem.poemId} onClick={() => void choosePoem(poem.poemId)} className={`block w-full border-b border-[#1a1d2a] px-4 py-4 text-left ${active.poemId === poem.poemId ? "border-l-2 border-l-[#c9a84c] bg-[#161a27]" : ""}`}><p className="text-sm">{poem.title}</p><p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs italic text-[#8b8992]">{poem.excerpt}</p><p className="mt-2 text-[10px] uppercase tracking-wider text-[#6f6b78]">Created {formatDate(poem.createdAt)}</p></button>)}</aside>

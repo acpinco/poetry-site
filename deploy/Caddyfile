@@ -40,6 +40,14 @@
         reverse_proxy app:8080
     }
 
+    # The public root is server-rendered so search engines receive meaningful
+    # content without needing to execute the React application.
+    handle / {
+        reverse_proxy app:8080 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+
     handle {
         root * /srv
         try_files {path} /index.html

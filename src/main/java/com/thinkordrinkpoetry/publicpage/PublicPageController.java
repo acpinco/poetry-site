@@ -75,7 +75,7 @@ public class PublicPageController {
                 + "\">" + text(poem.title()) + "</a></li>").reduce("", String::concat);
         return page(poet.name() + " poems", poet.bio() == null || poet.bio().isBlank() ? "Read poems by " + poet.name() + "." : poet.bio(), canonical,
                 "<article><h1>" + text(poet.name()) + "</h1>" + (poet.bio() == null || poet.bio().isBlank() ? "" : "<p>" + text(poet.bio()) + "</p>")
-                + "<h2>Poems</h2><ul>" + links + "</ul></article>", poetJsonLd(poet, canonical));
+                + "<h2>Poems</h2><ul>" + links + "</ul></article>", poetJsonLd(poet, canonical), "profile");
     }
 
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)

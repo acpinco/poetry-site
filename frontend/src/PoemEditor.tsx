@@ -9,6 +9,7 @@ export default function PoemEditor({ poemId, onNavigate }: { poemId?: string; on
   const [loading, setLoading] = useState(Boolean(poemId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const returnPath = poemId ? `/home?mine=1&poem=${encodeURIComponent(poemId)}` : "/home?mine=1";
 
   useEffect(() => {
     if (!poemId) return;
@@ -18,7 +19,7 @@ export default function PoemEditor({ poemId, onNavigate }: { poemId?: string; on
   async function loadPoem(id: string) {
     try {
       const response = await fetch(`/api/poems/${id}`, { credentials: "include" });
-      if (response.status === 401 || response.status === 403) { onNavigate("/"); return; }
+      if (response.status === 401 || response.status === 403) { onNavigate("/sign-in"); return; }
       if (!response.ok) throw new Error("That poem could not be opened for editing.");
       const value = await response.json() as EditablePoem;
       setTitle(value.title);
@@ -41,7 +42,7 @@ export default function PoemEditor({ poemId, onNavigate }: { poemId?: string; on
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, poem })
       });
-      if (response.status === 401 || response.status === 403) { onNavigate("/"); return; }
+      if (response.status === 401 || response.status === 403) { onNavigate("/sign-in"); return; }
       if (!response.ok) throw new Error("Your poem could not be saved. Please try again.");
       const saved = await response.json() as EditablePoem;
       onNavigate(`/home?mine=1&poem=${encodeURIComponent(saved.poemId)}`);
@@ -54,7 +55,7 @@ export default function PoemEditor({ poemId, onNavigate }: { poemId?: string; on
 
   return <main className="min-h-screen bg-[#080a0f] px-4 py-10 text-[#e4ddd0] sm:py-16">
     <div className="mx-auto max-w-3xl">
-      <button type="button" onClick={() => onNavigate("/home")} className="mb-8 text-xs uppercase tracking-widest text-[#c9a84c]">← Back to poems</button>
+      <button type="button" onClick={() => onNavigate(returnPath)} className="mb-8 text-xs uppercase tracking-widest text-[#c9a84c]">← Back to poems</button>
       <section className="border border-[#2a2840] bg-[#0e1018] p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
         <img src={ravenLogo} alt="Think or Drink Poetry" className="mx-auto h-12 max-w-full object-contain" />
         <h1 className="mt-8 text-center font-serif text-3xl">{poemId ? "Edit your poem" : "Write a new poem"}</h1>
@@ -71,7 +72,7 @@ export default function PoemEditor({ poemId, onNavigate }: { poemId?: string; on
           </div>
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button type="button" onClick={() => onNavigate("/home")} className="border border-[#3d3660] px-5 py-3 text-xs uppercase tracking-widest text-[#c8c0b0]">Cancel</button>
+            <button type="button" onClick={() => onNavigate(returnPath)} className="border border-[#3d3660] px-5 py-3 text-xs uppercase tracking-widest text-[#c8c0b0]">Cancel</button>
             <button type="submit" disabled={saving} className="bg-[#c9a84c] px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#080a0f] disabled:opacity-60">{saving ? "Saving…" : poemId ? "Save changes" : "Publish poem"}</button>
           </div>
         </form>}
