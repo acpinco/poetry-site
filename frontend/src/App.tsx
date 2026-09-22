@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import ravenLogo from "./imports/Raven_Logo.png";
 import Home from "./Home";
+import PoemEditor from "./PoemEditor";
 
 function FeatherDecor({ className }: { className?: string }) {
   return <svg viewBox="0 0 40 120" fill="none" className={className} aria-hidden="true">
@@ -12,8 +13,8 @@ function FeatherDecor({ className }: { className?: string }) {
 }
 
 export default function App() {
-  const [path, setPath] = useState(window.location.pathname);
-  const [screen, setScreen] = useState<"loading" | "login" | "profile">("loading");
+  const [path, setPath] = useState(() => window.location.pathname + window.location.search);
+  const [screen, setScreen] = useState<"loading" | "login" | "profile" | "poem-editor">("loading");
   const [existingProfile, setExistingProfile] = useState(false);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -27,8 +28,14 @@ export default function App() {
   const derivedPenName = penName.trim() || (firstName.trim() && lastName.trim() ? `${firstName.trim()} ${lastName.trim()}` : "");
   const inputBase = "w-full bg-[#0e1018] border text-[#e4ddd0] placeholder-[#4a4857] rounded px-4 py-3 text-sm outline-none transition-all duration-300";
   const inputStyle = (field: string) => `${inputBase} ${focused === field ? "border-[#c9a84c] shadow-[0_0_0_1px_rgba(201,168,76,0.25)]" : "border-[#2a2840] hover:border-[#3d3660]"}`;
+  const [pathname, queryString = ""] = path.split("?", 2);
+  const editMatch = pathname.match(/^\/my-poems\/([^/]+)\/edit$/);
+  const isPoemEditor = pathname === "/my-poems/new" || editMatch !== null;
+  const homeQuery = new URLSearchParams(queryString);
+  const showMyPoems = homeQuery.get("mine") === "1";
+  const selectedMyPoemId = showMyPoems ? homeQuery.get("poem") ?? undefined : undefined;
 
-  useEffect(() => { if (path !== "/home") void loadSession(); }, [path]);
+  useEffect(() => { if (pathname !== "/home") void loadSession(); }, [pathname]);
 
   function navigate(nextPath: string) { window.history.pushState({}, "", nextPath); setPath(nextPath); }
 
@@ -38,11 +45,13 @@ export default function App() {
       if (!session.ok) { setScreen("login"); return; }
       const profile = await fetch("/api/poets/me", { credentials: "include" });
       if (profile.ok) {
-        if (path === "/account/setup") {
+        if (pathname === "/account/setup") {
           const data = await profile.json();
           setFirstName(data.firstName ?? ""); setLastName(data.lastName ?? "");
           setPenName(data.penName === data.fullName ? "" : (data.penName ?? "")); setBio(data.bio ?? "");
           setExistingProfile(true); setScreen("profile");
+        } else if (isPoemEditor) {
+          setScreen("poem-editor");
         } else navigate("/home");
         return;
       }
@@ -72,12 +81,13 @@ export default function App() {
         if (response.status === 401 || response.status === 403) throw new Error("Please sign in with a magic link before creating your profile.");
         throw new Error("We could not save your profile. Please try again.");
       }
-      navigate("/home");
+      navigate(existingProfile ? "/home?mine=1" : "/home");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "We could not save your profile."); }
     finally { setSubmitting(false); }
   }
 
-  if (path === "/home") return <Home onNavigate={navigate} />;
+  if (pathname === "/home") return <Home initialMyPoemId={selectedMyPoemId} showMyPoems={showMyPoems} onNavigate={navigate} />;
+  if (screen === "poem-editor") return <PoemEditor poemId={editMatch?.[1]} onNavigate={navigate} />;
 
   return <main className="min-h-screen flex items-center justify-center px-4 py-16 relative overflow-hidden" style={{ background: "radial-gradient(ellipse at 30% 20%, #12102a 0%, #080a0f 60%)" }}>
     <FeatherDecor className="absolute top-10 left-8 w-8 h-24 feather-float opacity-60 rotate-12" />

@@ -10,6 +10,15 @@
 html, body { margin: 0; min-width: 320px; background: #080a0f; color: #e4ddd0; font-family: var(--font-body); }
 ::selection { background: #3b2d5e; color: #e8c97a; }
 
+.poetry-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #493566 #0d0f1a;
+}
+.poetry-scroll::-webkit-scrollbar { width: 8px; }
+.poetry-scroll::-webkit-scrollbar-track { background: #0d0f1a; }
+.poetry-scroll::-webkit-scrollbar-thumb { background: #493566; border: 2px solid #0d0f1a; border-radius: 999px; }
+.poetry-scroll::-webkit-scrollbar-thumb:hover { background: #674b8c; }
+
 @keyframes feather-drift {
   0%, 100% { transform: translateY(0) rotate(-3deg); opacity: .15; }
   50% { transform: translateY(-8px) rotate(2deg); opacity: .22; }

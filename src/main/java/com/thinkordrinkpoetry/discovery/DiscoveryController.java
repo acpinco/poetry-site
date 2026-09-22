@@ -85,8 +85,11 @@ public class DiscoveryController {
         return result;
     }
     private List<PoemSummary> poemsFor(UUID poetId) { return jdbc.query("""
-            select id, title, left(regexp_replace(poem, '\\s+', ' ', 'g'), 160) from poem where poet_id = ? order by updated_at desc
-            """, (rs, row) -> new PoemSummary(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3)), poetId); }
+            select id, title, left(regexp_replace(poem, '\\s+', ' ', 'g'), 160), legacy_submitted_on, created_at
+            from poem where poet_id = ? order by updated_at desc
+            """, (rs, row) -> new PoemSummary(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3),
+                    rs.getObject(4, java.time.LocalDate.class) == null ? rs.getTimestamp(5).toInstant()
+                            : rs.getObject(4, java.time.LocalDate.class).atStartOfDay().toInstant(java.time.ZoneOffset.UTC)), poetId); }
     private PoemDetail poem(UUID id) { PoemDetail result = jdbc.query("""
             select po.id, po.poet_id, po.title, po.poem, coalesce(nullif(p.pen_name, ''), p.full_name), po.legacy_submitted_on, po.created_at
             from poem po join poet p on p.id = po.poet_id where po.id = ?
@@ -95,7 +98,7 @@ public class DiscoveryController {
     private static String clientIp(HttpServletRequest request) { String forwarded = request.getHeader("X-Forwarded-For"); return forwarded == null || forwarded.isBlank() ? request.getRemoteAddr() : forwarded.split(",", 2)[0].trim(); }
 
     public record PoetSummary(UUID poetId, String displayName, String bio, int poemCount) {}
-    public record PoemSummary(UUID poemId, String title, String excerpt) {}
+    public record PoemSummary(UUID poemId, String title, String excerpt, Instant createdAt) {}
     public record PoemDetail(UUID poemId, UUID poetId, String title, String poem, String poetDisplayName, Instant createdAt) {}
     public record HomeResponse(PoetSummary poet, List<PoemSummary> poems, PoemDetail selectedPoem) {}
     public record PoetPoemsResponse(PoetSummary poet, List<PoemSummary> poems) {}
