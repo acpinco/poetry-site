@@ -210,3 +210,29 @@ sudo journalctl -u cloudflared --follow
 Description: Restart the Cloudflare Tunnel service after changing its server-side tunnel configuration.
 
 sudo systemctl restart cloudflared
+
+
+POSTGRESQL BACKUPS
+------------------
+
+Description: Start the interactive Google Drive and encrypted rclone-crypt setup as the production server user. Run this on the server, not inside a Docker container. The resulting rclone configuration contains cloud authorization and encryption material, so it must remain outside Git.
+
+rclone config
+
+---------
+
+Description: Run the production PostgreSQL backup manually after the server-only /etc/poetry-site-backup.env configuration and encrypted Google Drive rclone remote have been created. It writes a consistent custom-format PostgreSQL archive, validates it, uploads it, and then applies 31-day retention.
+
+sudo ./scripts/backup-production-db.sh
+
+---------
+
+Description: Edit the root user's cron schedule in Vim. Add the documented daily 3:15 AM backup line after the backup succeeds manually. Root is used because the server's Docker commands require elevated privileges.
+
+sudo env EDITOR=vim crontab -e
+
+---------
+
+Description: Check the root cron schedule after adding the Poetry Site backup job.
+
+sudo crontab -l

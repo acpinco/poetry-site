@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 !.env.production.example
+deploy/poetry-site-backup.env
 
 # Java / Maven build output
 target/
