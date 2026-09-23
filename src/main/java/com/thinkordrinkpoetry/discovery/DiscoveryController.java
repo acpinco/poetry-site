@@ -19,8 +19,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class DiscoveryController {
     private final JdbcTemplate jdbc;
     private final PublicDiscoveryRateLimiter limiter;
+    private final PoemOfTheDayService poemOfTheDay;
 
-    public DiscoveryController(JdbcTemplate jdbc, PublicDiscoveryRateLimiter limiter) { this.jdbc = jdbc; this.limiter = limiter; }
+    public DiscoveryController(JdbcTemplate jdbc, PublicDiscoveryRateLimiter limiter, PoemOfTheDayService poemOfTheDay) {
+        this.jdbc = jdbc;
+        this.limiter = limiter;
+        this.poemOfTheDay = poemOfTheDay;
+    }
 
     @GetMapping("/home")
     public HomeResponse home(HttpServletRequest request) {
@@ -32,8 +37,20 @@ public class DiscoveryController {
                 """, rs -> rs.next() ? new PoetSummary(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3), rs.getInt(4)) : null);
         if (poet == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No poems are available yet.");
         List<PoemSummary> poems = poemsFor(poet.poetId());
-        PoemSummary selected = poems.get((int) (Math.random() * poems.size()));
+        // The random selection belongs exclusively to the persistent Poem of the Day.
+        // The center reader starts with this poet's newest poem instead.
+        PoemSummary selected = poems.getFirst();
         return new HomeResponse(poet, poems, poem(selected.poemId()));
+    }
+
+    @GetMapping("/poem-of-the-day")
+    public PoemDetail poemOfTheDay(HttpServletRequest request) {
+        limiter.check(clientIp(request), false);
+        UUID poemId = poemOfTheDay.poemIdForToday();
+        if (poemId == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No poems are available yet.");
+        }
+        return poem(poemId);
     }
 
     @GetMapping("/poets/{poetId}/poems")

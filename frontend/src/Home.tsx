@@ -7,9 +7,10 @@ type Poem = { poemId: string; poetId: string; title: string; poem: string; poetD
 type HomeData = { poet: Poet; poems: PoemSummary[]; selectedPoem: Poem };
 type SearchResults = { poets: Poet[]; poems: Array<PoemSummary & { poetId: string; poetDisplayName: string }> };
 
-export default function Home({ initialMyPoemId, showMyPoems, onNavigate }: { initialMyPoemId?: string; showMyPoems: boolean; onNavigate: (path: string) => void }) {
+export default function Home({ initialMyPoemId, onNavigate }: { initialMyPoemId?: string; onNavigate: (path: string) => void }) {
   const [data, setData] = useState<HomeData | null>(null);
   const [active, setActive] = useState<Poem | null>(null);
+  const [poemOfTheDay, setPoemOfTheDay] = useState<Poem | null>(null);
   const [viewer, setViewer] = useState(false);
   const [viewerPoetId, setViewerPoetId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -20,28 +21,48 @@ export default function Home({ initialMyPoemId, showMyPoems, onNavigate }: { ini
   const [showingRandomSelection, setShowingRandomSelection] = useState(false);
   const poemPanel = useRef<HTMLElement | null>(null);
 
-  useEffect(() => { void load(showMyPoems, initialMyPoemId); }, []);
+  useEffect(() => { void load(initialMyPoemId); }, []);
 
-  async function load(showOwnPoems = false, preferredMyPoemId?: string) {
+  async function load(preferredMyPoemId?: string, forcePublicBrowse = false) {
     try {
-      const [home, me] = await Promise.all([fetch("/api/discovery/home"), fetch("/api/auth/me", { credentials: "include" })]);
-      if (!home.ok) throw new Error("No poems are available yet.");
-      if (showOwnPoems && me.ok) {
-        const session = await me.json() as { poetId: string | null };
-        setViewer(true);
-        setViewerPoetId(session.poetId);
-        await myPoems(preferredMyPoemId);
-        return;
-      }
-      const value = await home.json();
-      setData(value);
-      setActive(value.selectedPoem);
-      setShowingRandomSelection(true);
+      const [dailyPoem, me] = await Promise.all([
+        fetch("/api/discovery/poem-of-the-day"),
+        fetch("/api/auth/me", { credentials: "include" })
+      ]);
+      const daily = dailyPoem.ok ? (await dailyPoem.json()) as Poem : null;
+      setPoemOfTheDay(daily);
       if (me.ok) {
         const session = await me.json() as { poetId: string | null };
         setViewer(true);
         setViewerPoetId(session.poetId);
-      } else {
+        // A signed-in poet should always return to their own collection.
+        if (session.poetId && !forcePublicBrowse) {
+          await myPoems(preferredMyPoemId);
+          return;
+        }
+      }
+
+      // In read-only mode, the fixed daily poem is also the poem opened in the
+      // reader and determines the poet shown in the left-hand list.
+      if (daily) {
+        const poetResponse = await fetch(`/api/discovery/poets/${daily.poetId}/poems`);
+        if (!poetResponse.ok) throw new Error("Unable to load the poet for today's poem.");
+        const poetData = await poetResponse.json() as Pick<HomeData, "poet" | "poems">;
+        setData({ ...poetData, selectedPoem: daily });
+        setActive(daily);
+        setShowingRandomSelection(false);
+        return;
+      }
+
+      // This fallback is only reached when no Poem of the Day can be assigned,
+      // such as before the first poem has been published.
+      const home = await fetch("/api/discovery/home");
+      if (!home.ok) throw new Error("No poems are available yet.");
+      const value = await home.json();
+      setData(value);
+      setActive(value.selectedPoem);
+      setShowingRandomSelection(true);
+      if (!me.ok) {
         setViewer(false);
         setViewerPoetId(null);
       }
@@ -96,7 +117,7 @@ export default function Home({ initialMyPoemId, showMyPoems, onNavigate }: { ini
     const [poemsResponse, profileResponse] = await Promise.all([fetch("/api/poems", { credentials: "include" }), fetch("/api/poets/me", { credentials: "include" })]);
     if (!poemsResponse.ok || !profileResponse.ok) return;
     const poems = await poemsResponse.json();
-    if (!poems.length) { await load(); return; }
+    if (!poems.length) { await load(undefined, true); return; }
     const profile = await profileResponse.json();
     const summaries = poems.map((poem: any) => ({ poemId: poem.poemId, title: poem.title, excerpt: poem.poem.replace(/\s+/g, " ").slice(0, 160), createdAt: poem.createdAt }));
     const selectedPoemId = summaries.some(poem => poem.poemId === preferredPoemId) ? preferredPoemId! : summaries[0].poemId;
@@ -137,7 +158,8 @@ export default function Home({ initialMyPoemId, showMyPoems, onNavigate }: { ini
     </header>
     <div className="flex min-h-0 flex-1">
       <aside className="poetry-scroll h-full w-64 shrink-0 overflow-y-auto border-r border-[#1e2235] bg-[#0d0f1a]"><div className="border-b border-[#1e2235] p-4"><p className="text-xs uppercase tracking-widest text-[#c9a84c]">{data.poet.displayName}</p>{showingRandomSelection && <p className="mt-1 text-xs italic text-[#c8c0b0]">Random poet of the day</p>}<p className="mt-1 text-xs text-[#8b8992]">{data.poet.poemCount} poems</p></div>{data.poems.map(poem => <button key={poem.poemId} onClick={() => void choosePoem(poem.poemId)} className={`block w-full border-b border-[#1a1d2a] px-4 py-4 text-left ${active.poemId === poem.poemId ? "border-l-2 border-l-[#c9a84c] bg-[#161a27]" : ""}`}><p className="text-sm">{poem.title}</p><p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs italic text-[#8b8992]">{poem.excerpt}</p><p className="mt-2 text-[10px] uppercase tracking-wider text-[#6f6b78]">Created {formatDate(poem.createdAt)}</p></button>)}</aside>
-      <article ref={poemPanel} className="poetry-scroll h-full flex-1 overflow-y-auto px-6 py-12"><div className="mx-auto max-w-2xl">{showingRandomSelection && <p className="text-center text-xs uppercase tracking-[.25em] text-[#8b8992]">Random poem for the day</p>}<p className="text-center text-xs uppercase tracking-[.25em] text-[#c9a84c]">{active.poetDisplayName}</p><div className="mt-3 flex items-center justify-center gap-3"><h1 className="font-serif text-4xl">{active.title}</h1>{viewerPoetId === active.poetId && <><button type="button" onClick={() => onNavigate(`/my-poems/${active.poemId}/edit`)} title="Edit this poem" aria-label={`Edit ${active.title}`} className="text-xl text-[#c9a84c] hover:text-[#e8c97a]">✎</button><button type="button" onClick={() => void deleteActivePoem()} title="Delete this poem" aria-label={`Delete ${active.title}`} className="text-lg text-red-300 hover:text-red-200">🗑</button></>}</div><p className="mt-3 text-center text-xs"><a href={`/poems/${active.poemId}/${slugify(active.title)}`} className="text-[#c9a84c]">Open shareable poem page</a></p><div className="mx-auto my-6 h-px w-48 bg-[#c9a84c55]" /><div className="whitespace-pre-wrap font-serif text-lg italic leading-loose text-[#c8c0b0]">{active.poem}</div></div></article>
+      <article ref={poemPanel} className="poetry-scroll h-full flex-1 overflow-y-auto px-6 py-12"><div className="mx-auto max-w-2xl"><p className="text-center text-xs uppercase tracking-[.25em] text-[#c9a84c]">{active.poetDisplayName}</p><div className="mt-3 flex items-center justify-center gap-3"><h1 className="font-serif text-4xl">{active.title}</h1>{viewerPoetId === active.poetId && <><button type="button" onClick={() => onNavigate(`/my-poems/${active.poemId}/edit`)} title="Edit this poem" aria-label={`Edit ${active.title}`} className="text-xl text-[#c9a84c] hover:text-[#e8c97a]">✎</button><button type="button" onClick={() => void deleteActivePoem()} title="Delete this poem" aria-label={`Delete ${active.title}`} className="text-lg text-red-300 hover:text-red-200">🗑</button></>}</div><p className="mt-3 text-center text-xs"><a href={`/poems/${active.poemId}/${slugify(active.title)}`} className="text-[#c9a84c]">Open shareable poem page</a></p><div className="mx-auto my-6 h-px w-48 bg-[#c9a84c55]" /><div className="whitespace-pre-wrap font-serif text-lg italic leading-loose text-[#c8c0b0]">{active.poem}</div></div></article>
+      {poemOfTheDay && <aside className="poetry-scroll hidden h-full w-[23rem] shrink-0 overflow-y-auto border-l border-[#1e2235] bg-[#0d0f1a] xl:block"><div className="border-b border-[#1e2235] p-4"><p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">Poem of the Day</p><p className="mt-1 text-xs text-[#8b8992]">A shared reading for today</p></div><button type="button" onClick={() => void choosePoem(poemOfTheDay.poemId)} className="block w-full px-6 py-8 text-left hover:bg-[#161a27]"><p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">{poemOfTheDay.poetDisplayName}</p><h2 className="mt-3 font-serif text-3xl text-[#e4ddd0]">{poemOfTheDay.title}</h2><div className="my-5 h-px w-32 bg-[#c9a84c55]" /><div className="whitespace-pre-wrap font-serif text-base italic leading-loose text-[#c8c0b0]">{poemOfTheDay.poem}</div><p className="mt-6 text-xs text-[#c9a84c]">Read in the main panel →</p></button></aside>}
     </div>
     <footer className="flex shrink-0 items-center justify-between gap-4 border-t border-[#1e2235] bg-[#0e1018] px-4 py-3 text-xs sm:px-7"><a href="/" className="text-[#c9a84c] hover:text-[#e8c97a]">About Think or Drink Poetry</a>{viewer && <button type="button" onClick={() => onNavigate("/contact")} className="border border-[#3d3660] px-3 py-2 uppercase tracking-wider text-[#c8c0b0] hover:border-[#c9a84c] hover:text-[#e8c97a]">Contact Me</button>}</footer>
   </main>;

@@ -91,7 +91,7 @@ export default function App() {
     finally { setSubmitting(false); }
   }
 
-  if (pathname === "/home") return <Home initialMyPoemId={selectedMyPoemId} showMyPoems={showMyPoems} onNavigate={navigate} />;
+  if (pathname === "/home") return <Home initialMyPoemId={selectedMyPoemId} onNavigate={navigate} />;
   if (screen === "poem-editor") return <PoemEditor poemId={editMatch?.[1]} onNavigate={navigate} />;
   if (screen === "contact") return <ContactPage onNavigate={navigate} />;
 

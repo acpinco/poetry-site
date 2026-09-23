@@ -31,12 +31,12 @@ class DatabaseMigrationTest {
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = 'public'
-                  AND table_name IN ('poet', 'email_login_token', 'user_session')
+                  AND table_name IN ('poet', 'email_login_token', 'user_session', 'poem_of_the_day')
                 """,
                 String.class);
 
         assertThat(tableNames)
-                .containsExactlyInAnyOrder("poet", "email_login_token", "user_session");
+                .containsExactlyInAnyOrder("poet", "email_login_token", "user_session", "poem_of_the_day");
     }
 
     @Test
