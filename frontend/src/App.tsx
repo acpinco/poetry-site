@@ -34,6 +34,7 @@ export default function App() {
   const isPoemEditor = pathname === "/my-poems/new" || editMatch !== null;
   const isContactPage = pathname === "/contact";
   const homeQuery = new URLSearchParams(queryString);
+  const hasMagicLinkError = homeQuery.get("error") === "magic-link";
   const showMyPoems = homeQuery.get("mine") === "1";
   const selectedMyPoemId = showMyPoems ? homeQuery.get("poem") ?? undefined : undefined;
 
@@ -105,6 +106,7 @@ export default function App() {
         {screen === "loading" ? <p className="text-center text-[#8b8992]">Preparing your page…</p> : screen === "login" ? <form onSubmit={requestMagicLink} className="space-y-5">
           <div className="text-center"><h1 className="text-2xl text-[#e4ddd0]">Find your voice</h1><p className="mt-2 text-sm text-[#8b8992]">Enter your email and we’ll send you a sign-in link.</p></div>
           <div><label htmlFor="email" className="block text-xs mb-2 tracking-wide text-[#8b8992]">Email Address <span className="text-[#c9a84c]">*</span></label><input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} onFocus={() => setFocused("email")} onBlur={() => setFocused(null)} placeholder="you@example.com" className={inputStyle("email")} /></div>
+          {hasMagicLinkError && <p role="alert" className="text-sm text-red-300">That sign-in link is invalid or has expired. Please request a new one.</p>}
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}{message && <p role="status" className="text-sm text-[#e8c97a]">{message}</p>}
           <div className="h-px" style={{ background: "linear-gradient(90deg, transparent, #2a2840, transparent)" }} />
           <button type="submit" disabled={submitting} className="w-full py-3.5 text-sm tracking-widest uppercase disabled:opacity-60" style={{ letterSpacing: ".2em", background: "linear-gradient(135deg, #c9a84c 0%, #a8872d 100%)", color: "#080a0f", fontWeight: 600, borderRadius: "2px", border: "none", cursor: "pointer" }}>{submitting ? "Sending…" : "Take Flight"}</button>

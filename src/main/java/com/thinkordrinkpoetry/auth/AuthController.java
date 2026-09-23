@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -39,7 +40,20 @@ class AuthController {
 
     @GetMapping(value = "/magic-links/{token}", produces = MediaType.TEXT_HTML_VALUE)
     ResponseEntity<Void> followMagicLink(@PathVariable String token) {
-        AuthService.LoginResult result = authService.consumeMagicLink(token);
+        AuthService.LoginResult result;
+        try {
+            result = authService.consumeMagicLink(token);
+        } catch (ResponseStatusException exception) {
+            // A browser follows this endpoint directly from email.  Send an expired or
+            // invalid link back to the friendly sign-in screen instead of Spring's
+            // default error page.
+            if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                return ResponseEntity.status(HttpStatus.SEE_OTHER)
+                        .header(HttpHeaders.LOCATION, signInWithMagicLinkError())
+                        .build();
+            }
+            throw exception;
+        }
         return ResponseEntity.status(HttpStatus.SEE_OTHER)
                 .header(HttpHeaders.SET_COOKIE, sessionCookie(result.sessionToken(), properties.sessionTtl()).toString())
                 .header(HttpHeaders.LOCATION, destination(result))
@@ -108,6 +122,10 @@ class AuthController {
     private String destination(AuthService.LoginResult result) {
         return properties.frontendBaseUrl().replaceAll("/+$", "")
                 + (result.profileExists() ? "/home" : "/account/setup");
+    }
+
+    private String signInWithMagicLinkError() {
+        return properties.frontendBaseUrl().replaceAll("/+$", "") + "/sign-in?error=magic-link";
     }
 
     record MagicLinkRequest(@NotBlank String email) {
