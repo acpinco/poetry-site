@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import ravenLogo from "./imports/Raven_Logo.png";
 import Home from "./Home";
 import PoemEditor from "./PoemEditor";
+import ContactPage from "./ContactPage";
 
 function FeatherDecor({ className }: { className?: string }) {
   return <svg viewBox="0 0 40 120" fill="none" className={className} aria-hidden="true">
@@ -14,7 +15,7 @@ function FeatherDecor({ className }: { className?: string }) {
 
 export default function App() {
   const [path, setPath] = useState(() => window.location.pathname + window.location.search);
-  const [screen, setScreen] = useState<"loading" | "login" | "profile" | "poem-editor">("loading");
+  const [screen, setScreen] = useState<"loading" | "login" | "profile" | "poem-editor" | "contact">("loading");
   const [existingProfile, setExistingProfile] = useState(false);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -31,6 +32,7 @@ export default function App() {
   const [pathname, queryString = ""] = path.split("?", 2);
   const editMatch = pathname.match(/^\/my-poems\/([^/]+)\/edit$/);
   const isPoemEditor = pathname === "/my-poems/new" || editMatch !== null;
+  const isContactPage = pathname === "/contact";
   const homeQuery = new URLSearchParams(queryString);
   const showMyPoems = homeQuery.get("mine") === "1";
   const selectedMyPoemId = showMyPoems ? homeQuery.get("poem") ?? undefined : undefined;
@@ -52,6 +54,8 @@ export default function App() {
           setExistingProfile(true); setScreen("profile");
         } else if (isPoemEditor) {
           setScreen("poem-editor");
+        } else if (isContactPage) {
+          setScreen("contact");
         } else navigate("/home");
         return;
       }
@@ -88,6 +92,7 @@ export default function App() {
 
   if (pathname === "/home") return <Home initialMyPoemId={selectedMyPoemId} showMyPoems={showMyPoems} onNavigate={navigate} />;
   if (screen === "poem-editor") return <PoemEditor poemId={editMatch?.[1]} onNavigate={navigate} />;
+  if (screen === "contact") return <ContactPage onNavigate={navigate} />;
 
   return <main className="min-h-screen flex items-center justify-center px-4 py-16 relative overflow-hidden" style={{ background: "radial-gradient(ellipse at 30% 20%, #12102a 0%, #080a0f 60%)" }}>
     <FeatherDecor className="absolute top-10 left-8 w-8 h-24 feather-float opacity-60 rotate-12" />

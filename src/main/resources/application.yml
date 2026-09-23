@@ -40,6 +40,8 @@ springdoc:
 app:
   mail:
     from: ${MAIL_FROM:Think or Drink Poetry <noreply@localhost>}
+  contact:
+    to: ${CONTACT_EMAIL:timberlinelab@gmail.com}
   auth:
     magic-link-base-url: ${MAGIC_LINK_BASE_URL:http://localhost:8080}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}

@@ -50,7 +50,7 @@
 
     # Vite fingerprints bundles on every build. Never cache an SPA document or
     # it can reference a bundle hash that was removed by the next deployment.
-    @spa path /home /home/* /sign-in /sign-in/* /account/setup /account/setup/* /my-poems /my-poems/*
+    @spa path /home /home/* /sign-in /sign-in/* /account/setup /account/setup/* /my-poems /my-poems/* /contact /contact/*
     handle @spa {
         header Cache-Control "no-store"
         root * /srv
