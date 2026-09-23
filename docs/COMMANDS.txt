@@ -141,6 +141,30 @@ sudo docker compose -f compose.production.yaml exec -T postgres sh -c 'psql -U "
 
 ---------
 
+Description: Preview up to 500 eligible historical poets for the one-time 1999 poetry outreach. This sends no email and prints each historical address plus its public poet-page URL. Synthetic @doesnotexist.com addresses and poets without poems are excluded.
+
+./scripts/send-legacy-poetry-outreach-production.sh dry-run
+
+---------
+
+Description: Send one personalized historical-poetry email only to the configured test inboxes (acpinco01@gmail.com and timberlinelab@gmail.com by default). No historical address receives this test email. Pass a number to test more candidates after reviewing the first message.
+
+./scripts/send-legacy-poetry-outreach-production.sh test
+
+---------
+
+Description: Re-send the first test candidate to the configured test inboxes after changing the email copy or styling. The --resend switch is explicit because successful campaign deliveries are normally skipped.
+
+./scripts/send-legacy-poetry-outreach-production.sh test 1 --resend
+
+---------
+
+Description: View recorded one-time outreach deliveries, including test/live mode, recipient, status, and send time. This is useful before any live batch and for resuming a batch safely.
+
+sudo docker compose -f compose.production.yaml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -P pager=off -c "select campaign_id, delivery_mode, status, delivery_email, historical_email, sent_at from legacy_poetry_outreach_delivery order by created_at desc;"'
+
+---------
+
 Description: Stop the production Poetry Site stack while preserving its PostgreSQL volume. Do not add --volumes unless database deletion is intentional.
 
 sudo docker compose -f compose.production.yaml down
