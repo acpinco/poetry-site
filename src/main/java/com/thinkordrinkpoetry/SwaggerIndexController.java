@@ -5,10 +5,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Provides a useful temporary landing page while Swagger is intentionally public.
+ * Optional legacy redirect for temporarily making Swagger the site root.
  */
 @Controller
-@ConditionalOnProperty(prefix = "springdoc.swagger-ui", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "app.swagger-root-redirect", name = "enabled", havingValue = "true")
 class SwaggerIndexController {
 
     @GetMapping("/")
