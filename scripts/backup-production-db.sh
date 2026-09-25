@@ -21,7 +21,6 @@ id "$BACKUP_OWNER" >/dev/null
 
 compose_file="$project_dir/compose.production.yaml"
 [[ -f "$compose_file" ]] || { echo "Missing $compose_file" >&2; exit 1; }
-[[ -f "$RCLONE_CONFIG" ]] || { echo "Missing rclone configuration: $RCLONE_CONFIG" >&2; exit 1; }
 
 install -d -m 700 -o "$BACKUP_OWNER" -g "$BACKUP_OWNER" "$BACKUP_DIRECTORY"
 
@@ -42,8 +41,11 @@ docker compose -f "$compose_file" exec -T postgres sh -c \
 
 echo "[$(date -u --iso-8601=seconds)] Validating PostgreSQL archive"
 docker compose -f "$compose_file" exec -T postgres sh -c 'pg_restore --list' < "$temporary_path" > /dev/null
-sha256sum "$temporary_path" > "$temporary_checksum"
 mv "$temporary_path" "$archive_path"
+(
+  cd "$BACKUP_DIRECTORY"
+  sha256sum "$archive_name" > "$temporary_checksum"
+)
 mv "$temporary_checksum" "$checksum_path"
 chown "$BACKUP_OWNER:$BACKUP_OWNER" "$archive_path" "$checksum_path"
 

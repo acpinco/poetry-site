@@ -12,6 +12,6 @@ class OpenApiConfiguration {
         return new OpenAPI().info(new Info()
                 .title("Think or Drink Poetry API")
                 .version("v1")
-                .description("Development API documentation for Think or Drink Poetry."));
+                .description("Public API documentation for Think or Drink Poetry."));
     }
 }

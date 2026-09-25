@@ -3,6 +3,7 @@ package com.thinkordrinkpoetry.auth;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -19,7 +20,7 @@ class MagicLinkRequestRateLimiter {
         Instant now = Instant.now();
         String key = email + "|" + clientIp;
         RequestWindow window = windows.compute(key, (ignored, current) -> {
-            if (current == null || !current.startedAt().plus(properties.magicLinkTtl()).isAfter(now)) {
+            if (current == null || !current.expiresAt(properties).isAfter(now)) {
                 return new RequestWindow(now, 1);
             }
             return new RequestWindow(current.startedAt(), current.requestCount() + 1);
@@ -30,6 +31,15 @@ class MagicLinkRequestRateLimiter {
         }
     }
 
+    @Scheduled(fixedDelayString = "PT15M", initialDelayString = "PT15M")
+    void removeExpiredWindows() {
+        Instant now = Instant.now();
+        windows.entrySet().removeIf(entry -> !entry.getValue().expiresAt(properties).isAfter(now));
+    }
+
     private record RequestWindow(Instant startedAt, int requestCount) {
+        Instant expiresAt(AuthProperties properties) {
+            return startedAt.plus(properties.magicLinkTtl());
+        }
     }
 }

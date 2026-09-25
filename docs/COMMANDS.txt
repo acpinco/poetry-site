@@ -44,9 +44,15 @@ docker compose logs --follow app
 
 ---------
 
-Description: Run the Poetry Site automated test suite. Integration tests create an isolated temporary PostgreSQL 18 Testcontainers database.
+Description: Run the Poetry Site automated test suite. The compiler treats warnings as errors, and integration tests create an isolated temporary PostgreSQL 18 Testcontainers database.
 
 mvn test
+
+---------
+
+Description: Run the frontend type-check, unit tests, and production build using Node 22 in Docker. This works even when Node.js is not installed on the WSL host.
+
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/frontend:/workspace" -w /workspace node:22-alpine sh -c 'npm ci && npm run check'
 
 ---------
 
@@ -131,16 +137,6 @@ curl -iL --max-time 10 http://127.0.0.1:8081/swagger-ui.html
 
 ---------
 
-Description: The one-time production legacy importer is permanently disabled now that the site is live. Do not clear the production Docker volume or re-import legacy CSV data.
-
----------
-
-Description: Verify the production legacy import totals from inside the internal PostgreSQL container.
-
-sudo docker compose -f compose.production.yaml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -P pager=off -c "select count(*) as poets from poet; select count(*) as poems from poem; select p.email, p.first_name, p.last_name, p.account_status, p.role, count(po.id) as poem_count from poet p join legacy_poet_import_map l on l.poet_id = p.id left join poem po on po.poet_id = p.id where l.legacy_poet_id = 77 group by p.email, p.first_name, p.last_name, p.account_status, p.role;"'
-
----------
-
 Description: Preview up to 500 eligible historical poets for the one-time 1999 poetry outreach. This sends no email and prints each historical address plus its public poet-page URL. Synthetic @doesnotexist.com addresses and poets without poems are excluded.
 
 ./scripts/send-legacy-poetry-outreach-production.sh dry-run
@@ -218,6 +214,12 @@ POSTGRESQL BACKUPS
 Description: Run the production PostgreSQL backup manually after creating the server-only /etc/poetry-site-backup.env configuration. It writes a consistent custom-format PostgreSQL archive, validates it, and retains the latest 31 days locally. This is not off-server disaster recovery.
 
 sudo ./scripts/backup-production-db.sh
+
+---------
+
+Description: Restore a verified production PostgreSQL backup. This permanently replaces the live database, stops the application only while the restore runs, and restarts it afterwards if it was running. Replace the archive path with an existing absolute .dump path. The long confirmation flag is required deliberately.
+
+sudo ./scripts/restore-production-db.sh --confirm-replace-live-database /home/remote/backups/poetry-site/poetry-site-YYYY-MM-DDTHHMMSSZ.dump
 
 ---------
 
