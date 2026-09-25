@@ -1,0 +1,17 @@
+{
+  "name": "Think or Drink Poetry",
+  "short_name": "Think or Drink",
+  "description": "Discover and read original poems by a community of poets.",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#080a0f",
+  "theme_color": "#080a0f",
+  "icons": [
+    {
+      "src": "/icons/raven-logo.png",
+      "sizes": "1402x1122",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
