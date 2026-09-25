@@ -75,7 +75,23 @@ public class PublicPageController {
                 + "\">" + text(poem.title()) + "</a></li>").reduce("", String::concat);
         return page(poet.name() + " poems", poet.bio() == null || poet.bio().isBlank() ? "Read poems by " + poet.name() + "." : poet.bio(), canonical,
                 "<article><h1>" + text(poet.name()) + "</h1>" + (poet.bio() == null || poet.bio().isBlank() ? "" : "<p>" + text(poet.bio()) + "</p>")
+                + "<p><a href=\"" + attribute(siteUrl + "/poets/" + poet.id() + "/" + slugify(poet.name()) + "/bio") + "\">Read " + text(poet.name()) + "’s bio</a></p>"
                 + "<h2>Poems</h2><ul>" + links + "</ul></article>", poetJsonLd(poet, canonical), "profile");
+    }
+
+    @GetMapping(value = {"/poets/{poetId}/bio", "/poets/{poetId}/{slug}/bio"}, produces = MediaType.TEXT_HTML_VALUE)
+    @ResponseBody
+    public String poetBio(@PathVariable UUID poetId, @PathVariable(required = false) String slug) {
+        Poet poet = poetById(poetId);
+        String canonical = siteUrl + "/poets/" + poet.id() + "/" + slugify(poet.name()) + "/bio";
+        String bio = poet.bio() == null || poet.bio().isBlank()
+                ? poet.name() + " has not added a biography yet."
+                : poet.bio();
+        String poemUrl = siteUrl + "/poets/" + poet.id() + "/" + slugify(poet.name());
+        return page(poet.name() + " bio", bio, canonical,
+                "<article><p><a class=\"back\" href=\"" + attribute(poemUrl) + "\">← Back to poems</a></p><p class=\"byline\">Poet bio</p><h1>" + text(poet.name()) + "</h1><div class=\"bio\">" + text(bio)
+                        + "</div><p><a href=\"" + attribute(poemUrl) + "\">Read poems by " + text(poet.name()) + "</a></p></article>",
+                poetJsonLd(poet, canonical), "profile");
     }
 
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
@@ -89,7 +105,11 @@ public class PublicPageController {
                 select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), max(coalesce(po.legacy_submitted_on, po.updated_at::date))
                 from poet p join poem po on po.poet_id = p.id group by p.id, p.pen_name, p.full_name
                 """, (rs, row) -> new SitemapEntry("/poets/" + rs.getObject(1, UUID.class) + "/" + slugify(rs.getString(2)), rs.getObject(3, LocalDate.class)));
-        String entries = java.util.stream.Stream.concat(java.util.stream.Stream.of(new SitemapEntry("/", null)), java.util.stream.Stream.concat(poems.stream(), poets.stream()))
+        List<SitemapEntry> bios = jdbc.query("""
+                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), max(coalesce(po.legacy_submitted_on, po.updated_at::date))
+                from poet p join poem po on po.poet_id = p.id group by p.id, p.pen_name, p.full_name
+                """, (rs, row) -> new SitemapEntry("/poets/" + rs.getObject(1, UUID.class) + "/" + slugify(rs.getString(2)) + "/bio", rs.getObject(3, LocalDate.class)));
+        String entries = java.util.stream.Stream.concat(java.util.stream.Stream.of(new SitemapEntry("/", null)), java.util.stream.Stream.concat(poems.stream(), java.util.stream.Stream.concat(poets.stream(), bios.stream())))
                 .map(entry -> "<url><loc>" + xml(siteUrl + entry.path()) + "</loc>" + (entry.lastModified() == null ? "" : "<lastmod>" + entry.lastModified() + "</lastmod>") + "</url>")
                 .reduce("", String::concat);
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">" + entries + "</urlset>";
@@ -108,13 +128,22 @@ public class PublicPageController {
         return poem;
     }
 
+    private Poet poetById(UUID id) {
+        Poet poet = jdbc.query("""
+                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio
+                from poet p where p.id = ? and exists (select 1 from poem po where po.poet_id = p.id)
+                """, rs -> rs.next() ? new Poet(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3)) : null, id);
+        if (poet == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        return poet;
+    }
+
     private String page(String title, String description, String canonical, String body, String structuredData, String ogType) {
         return "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
                 + "<title>" + text(title) + " | Think or Drink Poetry</title><meta name=\"description\" content=\"" + attribute(excerpt(description)) + "\">"
                 + "<link rel=\"canonical\" href=\"" + attribute(canonical) + "\"><meta property=\"og:type\" content=\"" + attribute(ogType) + "\"><meta property=\"og:site_name\" content=\"Think or Drink Poetry\">"
                 + "<meta property=\"og:title\" content=\"" + attribute(title) + "\"><meta property=\"og:description\" content=\"" + attribute(excerpt(description)) + "\"><meta property=\"og:url\" content=\"" + attribute(canonical) + "\">"
                 + "<meta name=\"twitter:card\" content=\"summary\"><script type=\"application/ld+json\">" + safeJson(structuredData) + "</script>"
-                + "<style>body{margin:0;background:#080a0f;color:#e4ddd0;font:18px/1.7 Georgia,serif}main{max-width:760px;margin:auto;padding:48px 24px}a{color:#d2b254}h1,h2{line-height:1.2}.byline,.date,.eyebrow{font:12px/1.4 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#c9a84c}.date{color:#9896a1}.poem{white-space:pre-wrap;font-style:italic}li{margin:.5rem 0}.hero{padding:3rem 0}.hero h1{font-size:clamp(2.3rem,8vw,4.5rem)}.actions{display:flex;gap:1rem;flex-wrap:wrap}.button{display:inline-block;border:1px solid #d2b254;padding:.7rem 1rem;text-decoration:none}.secondary{border-color:#575060;color:#e4ddd0}section{border-top:1px solid #292536;padding:1.5rem 0}li span{color:#a7a1af;font-size:.85em}</style></head><body><main><p><a href=\"" + attribute(siteUrl) + "\">Think or Drink Poetry</a></p>" + body + "</main></body></html>";
+                + "<style>body{margin:0;background:#080a0f;color:#e4ddd0;font:18px/1.7 Georgia,serif}main{max-width:760px;margin:auto;padding:48px 24px}a{color:#d2b254}h1,h2{line-height:1.2}.byline,.date,.eyebrow,.back{font:12px/1.4 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#c9a84c}.date{color:#9896a1}.poem,.bio{white-space:pre-wrap;font-style:italic}li{margin:.5rem 0}.hero{padding:3rem 0}.hero h1{font-size:clamp(2.3rem,8vw,4.5rem)}.actions{display:flex;gap:1rem;flex-wrap:wrap}.button{display:inline-block;border:1px solid #d2b254;padding:.7rem 1rem;text-decoration:none}.secondary{border-color:#575060;color:#e4ddd0}section{border-top:1px solid #292536;padding:1.5rem 0}li span{color:#a7a1af;font-size:.85em}</style></head><body><main><p><a href=\"" + attribute(siteUrl) + "\">Think or Drink Poetry</a></p>" + body + "</main></body></html>";
     }
 
     private static String slugify(String value) { String slug = value.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", ""); return slug.isBlank() ? "poem" : slug; }

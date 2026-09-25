@@ -215,13 +215,7 @@ sudo systemctl restart cloudflared
 POSTGRESQL BACKUPS
 ------------------
 
-Description: Start the interactive Google Drive and encrypted rclone-crypt setup as the production server user. Run this on the server, not inside a Docker container. The resulting rclone configuration contains cloud authorization and encryption material, so it must remain outside Git.
-
-rclone config
-
----------
-
-Description: Run the production PostgreSQL backup manually after the server-only /etc/poetry-site-backup.env configuration and encrypted Google Drive rclone remote have been created. It writes a consistent custom-format PostgreSQL archive, validates it, uploads it, and then applies 31-day retention.
+Description: Run the production PostgreSQL backup manually after creating the server-only /etc/poetry-site-backup.env configuration. It writes a consistent custom-format PostgreSQL archive, validates it, and retains the latest 31 days locally. This is not off-server disaster recovery.
 
 sudo ./scripts/backup-production-db.sh
 

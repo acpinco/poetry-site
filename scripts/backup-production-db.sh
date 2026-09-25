@@ -13,12 +13,9 @@ source "$config_file"
 
 : "${BACKUP_OWNER:?BACKUP_OWNER is required}"
 : "${BACKUP_DIRECTORY:?BACKUP_DIRECTORY is required}"
-: "${RCLONE_REMOTE:?RCLONE_REMOTE is required}"
-: "${RCLONE_CONFIG:?RCLONE_CONFIG is required}"
 : "${RETENTION_DAYS:=31}"
 
 [[ "$BACKUP_DIRECTORY" == /home/*/backups/* ]] || { echo "BACKUP_DIRECTORY must be a dedicated /home/.../backups/... path." >&2; exit 1; }
-[[ "$RCLONE_REMOTE" == *:* && "${RCLONE_REMOTE#*:}" != "$RCLONE_REMOTE" ]] || { echo "RCLONE_REMOTE must name a remote and path, for example remote:poetry-site." >&2; exit 1; }
 [[ "$RETENTION_DAYS" =~ ^[0-9]+$ && "$RETENTION_DAYS" -ge 1 ]] || { echo "RETENTION_DAYS must be a positive whole number." >&2; exit 1; }
 id "$BACKUP_OWNER" >/dev/null
 
@@ -50,18 +47,7 @@ mv "$temporary_path" "$archive_path"
 mv "$temporary_checksum" "$checksum_path"
 chown "$BACKUP_OWNER:$BACKUP_OWNER" "$archive_path" "$checksum_path"
 
-run_rclone() {
-  runuser -u "$BACKUP_OWNER" -- env RCLONE_CONFIG="$RCLONE_CONFIG" rclone "$@"
-}
-
-echo "[$(date -u --iso-8601=seconds)] Uploading encrypted archive to $RCLONE_REMOTE"
-run_rclone copyto "$archive_path" "$RCLONE_REMOTE/$archive_name"
-run_rclone copyto "$checksum_path" "$RCLONE_REMOTE/$archive_name.sha256"
-run_rclone lsf "$RCLONE_REMOTE/$archive_name" > /dev/null
-run_rclone lsf "$RCLONE_REMOTE/$archive_name.sha256" > /dev/null
-
 echo "[$(date -u --iso-8601=seconds)] Pruning backups older than $RETENTION_DAYS days"
 find "$BACKUP_DIRECTORY" -maxdepth 1 -type f \( -name 'poetry-site-*.dump' -o -name 'poetry-site-*.dump.sha256' \) -mtime "+$RETENTION_DAYS" -delete
-run_rclone delete "$RCLONE_REMOTE" --min-age "${RETENTION_DAYS}d" --include 'poetry-site-*.dump' --include 'poetry-site-*.dump.sha256'
 
-echo "[$(date -u --iso-8601=seconds)] Backup completed and verified: $archive_name"
+echo "[$(date -u --iso-8601=seconds)] Local backup completed and verified: $archive_name"

@@ -98,7 +98,9 @@ export default function App() {
   return <main className="min-h-screen flex items-center justify-center px-4 py-16 relative overflow-hidden" style={{ background: "radial-gradient(ellipse at 30% 20%, #12102a 0%, #080a0f 60%)" }}>
     <FeatherDecor className="absolute top-10 left-8 w-8 h-24 feather-float opacity-60 rotate-12" />
     <FeatherDecor className="absolute bottom-20 right-12 w-6 h-20 feather-float opacity-40 -rotate-6" />
-    <div className="card-glow relative w-full max-w-lg" style={{ background: "linear-gradient(160deg, #161a27 0%, #0e1018 100%)", border: "1px solid #2a2840", borderRadius: "4px" }}>
+    <div className="relative z-10 w-full max-w-lg">
+      {screen === "profile" && existingProfile && <button type="button" onClick={() => navigate("/home?mine=1")} className="mb-8 text-xs uppercase tracking-widest text-[#c9a84c]">← Back to poems</button>}
+    <div className="card-glow relative w-full" style={{ background: "linear-gradient(160deg, #161a27 0%, #0e1018 100%)", border: "1px solid #2a2840", borderRadius: "4px" }}>
       <div className="absolute top-0 left-8 right-8 h-px" style={{ background: "linear-gradient(90deg, transparent, #c9a84c55, transparent)" }} />
       <div className="px-6 py-10 sm:px-10 sm:py-12">
         <div className="flex justify-center mb-6"><img src={ravenLogo} alt="Think or Drink Poetry" className="w-72 max-w-full object-contain" /></div>
@@ -124,6 +126,7 @@ export default function App() {
         </form>}
       </div>
       <div className="absolute bottom-0 left-8 right-8 h-px" style={{ background: "linear-gradient(90deg, transparent, #c9a84c55, transparent)" }} />
+    </div>
     </div>
   </main>;
 }
