@@ -98,16 +98,19 @@ public class PublicPageController {
     @ResponseBody
     public String sitemap() {
         List<SitemapEntry> poems = jdbc.query("""
-                select po.id, po.title, coalesce(nullif(p.pen_name, ''), p.full_name), coalesce(po.legacy_submitted_on, po.updated_at::date)
+                select po.id, po.title, po.updated_at::date
                 from poem po join poet p on p.id = po.poet_id
-                """, (rs, row) -> new SitemapEntry("/poems/" + rs.getObject(1, UUID.class) + "/" + slugify(rs.getString(2)), rs.getObject(4, LocalDate.class)));
+                """, (rs, row) -> new SitemapEntry("/poems/" + rs.getObject(1, UUID.class) + "/" + slugify(rs.getString(2)), rs.getObject(3, LocalDate.class)));
         List<SitemapEntry> poets = jdbc.query("""
-                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), max(coalesce(po.legacy_submitted_on, po.updated_at::date))
-                from poet p join poem po on po.poet_id = p.id group by p.id, p.pen_name, p.full_name
+                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), greatest(p.updated_at, max(po.updated_at))::date
+                from poet p join poem po on po.poet_id = p.id
+                group by p.id, p.pen_name, p.full_name, p.updated_at
                 """, (rs, row) -> new SitemapEntry("/poets/" + rs.getObject(1, UUID.class) + "/" + slugify(rs.getString(2)), rs.getObject(3, LocalDate.class)));
         List<SitemapEntry> bios = jdbc.query("""
-                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), max(coalesce(po.legacy_submitted_on, po.updated_at::date))
-                from poet p join poem po on po.poet_id = p.id group by p.id, p.pen_name, p.full_name
+                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.updated_at::date
+                from poet p join poem po on po.poet_id = p.id
+                where nullif(btrim(p.bio), '') is not null
+                group by p.id, p.pen_name, p.full_name, p.updated_at
                 """, (rs, row) -> new SitemapEntry("/poets/" + rs.getObject(1, UUID.class) + "/" + slugify(rs.getString(2)) + "/bio", rs.getObject(3, LocalDate.class)));
         String entries = java.util.stream.Stream.concat(java.util.stream.Stream.of(new SitemapEntry("/", null)), java.util.stream.Stream.concat(poems.stream(), java.util.stream.Stream.concat(poets.stream(), bios.stream())))
                 .map(entry -> "<url><loc>" + xml(siteUrl + entry.path()) + "</loc>" + (entry.lastModified() == null ? "" : "<lastmod>" + entry.lastModified() + "</lastmod>") + "</url>")
