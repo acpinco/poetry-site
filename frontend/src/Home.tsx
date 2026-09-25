@@ -1,12 +1,5 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type MouseEvent,
-  type PointerEvent,
-  type WheelEvent,
-} from "react";
-import BrowseStrips from "./home/BrowseStrips";
+import { useEffect, useRef, useState } from "react";
+import BrowseSidebar from "./home/BrowseSidebar";
 import HomeHeader from "./home/HomeHeader";
 import {
   DesktopPoemReader,
@@ -43,21 +36,9 @@ export default function Home({
   const [recentOffset, setRecentOffset] = useState(0);
   const [moreRecentPoems, setMoreRecentPoems] = useState(false);
   const [showingAllPoems, setShowingAllPoems] = useState(false);
-  const [poetFocusRequest, setPoetFocusRequest] = useState(0);
   const [error, setError] = useState("");
   const poemPanel = useRef<HTMLElement | null>(null);
   const mobilePoemPanel = useRef<HTMLElement | null>(null);
-  const poetChips = useRef<Record<string, HTMLButtonElement | null>>({});
-  const focusPoetAfterSelection = useRef(false);
-  const horizontalDrag = useRef<{
-    element: HTMLDivElement;
-    pointerId: number;
-    startX: number;
-    startScrollLeft: number;
-    moved: boolean;
-    captured: boolean;
-  } | null>(null);
-  const suppressClickAfterDrag = useRef(false);
 
   useEffect(() => {
     void load(initialMyPoemId);
@@ -65,16 +46,6 @@ export default function Home({
   useEffect(() => {
     void loadDirectory();
   }, []);
-  useEffect(() => {
-    if (showingAllPoems || !data || !focusPoetAfterSelection.current) return;
-    poetChips.current[data.poet.poetId]?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "center",
-    });
-    focusPoetAfterSelection.current = false;
-  }, [data?.poet.poetId, poetFocusRequest, showingAllPoems]);
-
   async function load(preferredMyPoemId?: string, forcePublicBrowse = false) {
     try {
       const [dailyPoem, me] = await Promise.all([
@@ -126,7 +97,7 @@ export default function Home({
     if (response.ok) setDirectory(await response.json());
   }
 
-  async function choosePoem(id: string, focusPoet = false) {
+  async function choosePoem(id: string) {
     const response = await fetch(`/api/discovery/poems/${id}`);
     if (response.ok) {
       const poem = (await response.json()) as Poem;
@@ -138,7 +109,6 @@ export default function Home({
         HomeData,
         "poet" | "poems"
       >;
-      requestPoetFocus(focusPoet);
       setData({ ...poetData, selectedPoem: poem });
       setActive(poem);
       setShowingAllPoems(false);
@@ -161,7 +131,7 @@ export default function Home({
     if (response.ok) setResults(await response.json());
   }
 
-  async function choosePoet(id: string, focusPoet = false) {
+  async function choosePoet(id: string) {
     const response = await fetch(`/api/discovery/poets/${id}/poems`);
     if (!response.ok) return;
     const value = await response.json();
@@ -170,7 +140,6 @@ export default function Home({
           (response) => response.json(),
         )
       : null;
-    requestPoetFocus(focusPoet);
     setData({ poet: value.poet, poems: value.poems, selectedPoem: poem });
     setActive(poem);
     setShowingAllPoems(false);
@@ -182,7 +151,7 @@ export default function Home({
     setQuery("");
   }
 
-  async function myPoems(preferredPoemId?: string, focusPoet = false) {
+  async function myPoems(preferredPoemId?: string) {
     const [poemsResponse, profileResponse] = await Promise.all([
       fetch("/api/poems", { credentials: "include" }),
       fetch("/api/poets/me", { credentials: "include" }),
@@ -214,7 +183,6 @@ export default function Home({
       bio: profile.bio,
       poemCount: poems.length,
     };
-    requestPoetFocus(focusPoet);
     setData({ poet, poems: summaries, selectedPoem: detail });
     setActive(detail);
     setShowingAllPoems(false);
@@ -266,60 +234,6 @@ export default function Home({
     if (!response.ok) return;
     const poem = (await response.json()) as Poem;
     setActive(poem);
-  }
-
-  function scrollHorizontally(event: WheelEvent<HTMLDivElement>) {
-    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-    event.preventDefault();
-    event.currentTarget.scrollLeft += event.deltaY;
-  }
-
-  function requestPoetFocus(focusPoet: boolean) {
-    focusPoetAfterSelection.current = focusPoet;
-    if (focusPoet) setPoetFocusRequest((request) => request + 1);
-  }
-
-  function beginHorizontalDrag(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return;
-    const element = event.currentTarget;
-    horizontalDrag.current = {
-      element,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startScrollLeft: element.scrollLeft,
-      moved: false,
-      captured: false,
-    };
-  }
-
-  function dragHorizontally(event: PointerEvent<HTMLDivElement>) {
-    const drag = horizontalDrag.current;
-    if (!drag || drag.element !== event.currentTarget) return;
-    const distance = event.clientX - drag.startX;
-    if (Math.abs(distance) > 3 && !drag.moved) {
-      drag.moved = true;
-      drag.captured = true;
-      drag.element.setPointerCapture(drag.pointerId);
-    }
-    drag.element.scrollLeft = drag.startScrollLeft - distance;
-  }
-
-  function endHorizontalDrag(event: PointerEvent<HTMLDivElement>) {
-    const drag = horizontalDrag.current;
-    if (!drag || drag.element !== event.currentTarget) return;
-    if (drag.captured && drag.element.hasPointerCapture(event.pointerId))
-      drag.element.releasePointerCapture(event.pointerId);
-    horizontalDrag.current = null;
-    if (drag.moved) {
-      suppressClickAfterDrag.current = true;
-    }
-  }
-
-  function suppressDraggedClick(event: MouseEvent<HTMLDivElement>) {
-    if (!suppressClickAfterDrag.current) return;
-    event.preventDefault();
-    event.stopPropagation();
-    suppressClickAfterDrag.current = false;
   }
 
   async function deleteActivePoem() {
@@ -375,7 +289,7 @@ export default function Home({
           await showAllPoems(true);
         }}
         onMyPoems={async () => {
-          await myPoems(undefined, true);
+          await myPoems();
         }}
         onNavigate={onNavigate}
         onSearch={search}
@@ -403,39 +317,31 @@ export default function Home({
       </div>
 
       <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-        <BrowseStrips
-          activePoemId={active.poemId}
-          activePoetId={data.poet.poetId}
-          directory={directory}
-          displayedPoems={displayedPoems}
-          moreRecentPoems={moreRecentPoems}
-          onChoosePoem={choosePoem}
-          onChooseRecentPoem={chooseRecentPoem}
-          onChoosePoet={choosePoet}
-          onClickCapture={suppressDraggedClick}
-          onLoadMore={async () => {
-            await showAllPoems(true);
-          }}
-          onPointerCancel={endHorizontalDrag}
-          onPointerDown={beginHorizontalDrag}
-          onPointerMove={dragHorizontally}
-          onPointerUp={endHorizontalDrag}
-          onShowAllPoems={showAllPoems}
-          onWheel={scrollHorizontally}
-          poetChips={poetChips}
-          poetName={data.poet.displayName}
-          poetPoemCount={data.poet.poemCount}
-          showingAllPoems={showingAllPoems}
-        />
-        <DesktopPoemReader
-          active={active}
-          onChoosePoem={choosePoem}
-          onDelete={deleteActivePoem}
-          onNavigate={onNavigate}
-          poemOfTheDay={poemOfTheDay}
-          poemPanel={poemPanel}
-          viewerPoetId={viewerPoetId}
-        />
+        <div className="flex min-h-0 flex-1">
+          <BrowseSidebar
+            activePoemId={active.poemId}
+            displayedPoems={displayedPoems}
+            moreRecentPoems={moreRecentPoems}
+            onChoosePoem={choosePoem}
+            onChooseRecentPoem={chooseRecentPoem}
+            onLoadMore={async () => {
+              await showAllPoems(true);
+            }}
+            onShowAllPoems={showAllPoems}
+            poetName={data.poet.displayName}
+            poetPoemCount={data.poet.poemCount}
+            showingAllPoems={showingAllPoems}
+          />
+          <DesktopPoemReader
+            active={active}
+            onChoosePoem={choosePoem}
+            onDelete={deleteActivePoem}
+            onNavigate={onNavigate}
+            poemOfTheDay={poemOfTheDay}
+            poemPanel={poemPanel}
+            viewerPoetId={viewerPoetId}
+          />
+        </div>
         <HomeFooter onNavigate={onNavigate} viewer={viewer} />
       </div>
     </main>

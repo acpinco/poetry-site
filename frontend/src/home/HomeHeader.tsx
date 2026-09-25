@@ -14,9 +14,9 @@ type HomeHeaderProps = {
   directory: Poet[] | null;
   displayedPoems: DisplayedPoem[];
   moreRecentPoems: boolean;
-  onChoosePoem: (poemId: string, focusPoet?: boolean) => Promise<boolean>;
+  onChoosePoem: (poemId: string) => Promise<boolean>;
   onChooseRecentPoem: (poemId: string) => Promise<void>;
-  onChoosePoet: (poetId: string, focusPoet?: boolean) => Promise<void>;
+  onChoosePoet: (poetId: string) => Promise<void>;
   onLoadMore: () => Promise<void>;
   onMyPoems: () => Promise<void>;
   onNavigate: (path: string) => void;
@@ -69,12 +69,12 @@ export default function HomeHeader({
 
   function chooseDesktopPoet(poetId: string) {
     setDesktopSearchFocused(false);
-    void onChoosePoet(poetId, true);
+    void onChoosePoet(poetId);
   }
 
   function chooseDesktopPoem(poemId: string) {
     setDesktopSearchFocused(false);
-    void onChoosePoem(poemId, true);
+    void onChoosePoem(poemId);
   }
 
   return (
@@ -130,11 +130,11 @@ export default function HomeHeader({
             query={query}
             results={results}
             onChoosePoet={(poetId) => {
-              void onChoosePoet(poetId, true);
+              void onChoosePoet(poetId);
               closeMobilePanel();
             }}
             onChoosePoem={(poemId) => {
-              void onChoosePoem(poemId, true);
+              void onChoosePoem(poemId);
               closeMobilePanel();
             }}
           />
@@ -345,7 +345,7 @@ function MobileBrowsePanel({
               onClick={onShowAllPoems}
               className={`block w-full border-b border-[#2a2840] px-4 py-3 text-left text-sm ${showingAllPoems ? "bg-[#161a27] text-[#e8c97a]" : ""}`}
             >
-              All Poets{" "}
+              All Poems{" "}
               <span className="text-xs text-[#8b8992]">— newest poems</span>
             </button>
             {directory?.map((poet) => (
