@@ -19,6 +19,15 @@ html, body { margin: 0; min-width: 320px; background: #080a0f; color: #e4ddd0; f
 .poetry-scroll::-webkit-scrollbar-thumb { background: #493566; border: 2px solid #0d0f1a; border-radius: 999px; }
 .poetry-scroll::-webkit-scrollbar-thumb:hover { background: #674b8c; }
 
+.poetry-horizontal-scroll {
+  cursor: grab;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  user-select: none;
+}
+.poetry-horizontal-scroll::-webkit-scrollbar { display: none; }
+.poetry-horizontal-scroll:active { cursor: grabbing; }
+
 @keyframes feather-drift {
   0%, 100% { transform: translateY(0) rotate(-3deg); opacity: .15; }
   50% { transform: translateY(-8px) rotate(2deg); opacity: .22; }

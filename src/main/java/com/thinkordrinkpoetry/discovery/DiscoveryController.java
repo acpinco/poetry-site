@@ -1,6 +1,8 @@
 package com.thinkordrinkpoetry.discovery;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.List;
@@ -53,6 +55,24 @@ public class DiscoveryController {
         return poem(poemId);
     }
 
+    @GetMapping("/poems/recent")
+    public RecentPoemsResponse recentPoems(
+            @RequestParam(defaultValue = "60") @Min(1) @Max(100) int limit,
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            HttpServletRequest request) {
+        limiter.check(clientIp(request), false);
+        List<RecentPoemSummary> results = jdbc.query("""
+                select po.id, po.poet_id, po.title, coalesce(nullif(p.pen_name, ''), p.full_name),
+                       left(regexp_replace(po.poem, '\\s+', ' ', 'g'), 160), po.legacy_submitted_on, po.created_at
+                from poem po join poet p on p.id = po.poet_id
+                order by po.created_at desc, po.id desc
+                limit ? offset ?
+                """, (rs, row) -> new RecentPoemSummary(UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)),
+                rs.getString(3), rs.getString(4), rs.getString(5), submittedOrCreatedAt(rs, 6, 7)), limit + 1, offset);
+        boolean hasMore = results.size() > limit;
+        return new RecentPoemsResponse(hasMore ? results.subList(0, limit) : results, hasMore);
+    }
+
     @GetMapping("/poets/{poetId}/poems")
     public PoetPoemsResponse poemsByPoet(@PathVariable UUID poetId, HttpServletRequest request) {
         limiter.check(clientIp(request), false);
@@ -101,6 +121,12 @@ public class DiscoveryController {
         if (result == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Poet not found.");
         return result;
     }
+    private static Instant submittedOrCreatedAt(java.sql.ResultSet rs, int legacySubmittedOnColumn, int createdAtColumn)
+            throws java.sql.SQLException {
+        java.time.LocalDate legacySubmittedOn = rs.getObject(legacySubmittedOnColumn, java.time.LocalDate.class);
+        return legacySubmittedOn == null ? rs.getTimestamp(createdAtColumn).toInstant()
+                : legacySubmittedOn.atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
+    }
     private List<PoemSummary> poemsFor(UUID poetId) { return jdbc.query("""
             select id, title, left(regexp_replace(poem, '\\s+', ' ', 'g'), 160), legacy_submitted_on, created_at
             from poem where poet_id = ? order by updated_at desc
@@ -117,6 +143,8 @@ public class DiscoveryController {
     public record PoetSummary(UUID poetId, String displayName, String bio, int poemCount) {}
     public record PoemSummary(UUID poemId, String title, String excerpt, Instant createdAt) {}
     public record PoemDetail(UUID poemId, UUID poetId, String title, String poem, String poetDisplayName, Instant createdAt) {}
+    public record RecentPoemSummary(UUID poemId, UUID poetId, String title, String poetDisplayName, String excerpt, Instant createdAt) {}
+    public record RecentPoemsResponse(List<RecentPoemSummary> poems, boolean hasMore) {}
     public record HomeResponse(PoetSummary poet, List<PoemSummary> poems, PoemDetail selectedPoem) {}
     public record PoetPoemsResponse(PoetSummary poet, List<PoemSummary> poems) {}
     public record PoemSearchResult(UUID poemId, UUID poetId, String title, String poetDisplayName, String excerpt) {}

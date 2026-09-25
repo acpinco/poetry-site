@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type WheelEvent } from "react";
 import ravenLogo from "./imports/Raven_Logo.png";
 
 type Poet = { poetId: string; displayName: string; bio: string | null; poemCount: number };
 type PoemSummary = { poemId: string; title: string; excerpt: string; createdAt: string };
 type Poem = { poemId: string; poetId: string; title: string; poem: string; poetDisplayName: string; createdAt: string };
+type RecentPoem = { poemId: string; poetId: string; title: string; poetDisplayName: string; excerpt: string; createdAt: string };
 type HomeData = { poet: Poet; poems: PoemSummary[]; selectedPoem: Poem };
 type SearchResults = { poets: Poet[]; poems: Array<PoemSummary & { poetId: string; poetDisplayName: string }> };
 
@@ -18,12 +19,27 @@ export default function Home({ initialMyPoemId, onNavigate }: { initialMyPoemId?
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [directory, setDirectory] = useState<Poet[] | null>(null);
+  const [recentPoems, setRecentPoems] = useState<RecentPoem[]>([]);
+  const [recentOffset, setRecentOffset] = useState(0);
+  const [moreRecentPoems, setMoreRecentPoems] = useState(false);
+  const [showingAllPoems, setShowingAllPoems] = useState(false);
+  const [poetFocusRequest, setPoetFocusRequest] = useState(0);
   const [searchFocused, setSearchFocused] = useState(false);
   const [error, setError] = useState("");
   const [showingRandomSelection, setShowingRandomSelection] = useState(false);
   const poemPanel = useRef<HTMLElement | null>(null);
+  const poetChips = useRef<Record<string, HTMLButtonElement | null>>({});
+  const focusPoetAfterSelection = useRef(false);
+  const horizontalDrag = useRef<{ element: HTMLDivElement; pointerId: number; startX: number; startScrollLeft: number; moved: boolean; captured: boolean } | null>(null);
+  const suppressClickAfterDrag = useRef(false);
 
   useEffect(() => { void load(initialMyPoemId); }, []);
+  useEffect(() => { void loadDirectory(); }, []);
+  useEffect(() => {
+    if (showingAllPoems || !data || !focusPoetAfterSelection.current) return;
+    poetChips.current[data.poet.poetId]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    focusPoetAfterSelection.current = false;
+  }, [data?.poet.poetId, poetFocusRequest, showingAllPoems]);
 
   async function load(preferredMyPoemId?: string, forcePublicBrowse = false) {
     try {
@@ -44,17 +60,7 @@ export default function Home({ initialMyPoemId, onNavigate }: { initialMyPoemId?
         }
       }
 
-      // In read-only mode, the fixed daily poem is also the poem opened in the
-      // reader and determines the poet shown in the left-hand list.
-      if (daily) {
-        const poetResponse = await fetch(`/api/discovery/poets/${daily.poetId}/poems`);
-        if (!poetResponse.ok) throw new Error("Unable to load the poet for today's poem.");
-        const poetData = await poetResponse.json() as Pick<HomeData, "poet" | "poems">;
-        setData({ ...poetData, selectedPoem: daily });
-        setActive(daily);
-        setShowingRandomSelection(false);
-        return;
-      }
+      if (await showAllPoems()) return;
 
       // This fallback is only reached when no Poem of the Day can be assigned,
       // such as before the first poem has been published.
@@ -81,15 +87,17 @@ export default function Home({ initialMyPoemId, onNavigate }: { initialMyPoemId?
     if (response.ok) setDirectory(await response.json());
   }
 
-  async function choosePoem(id: string) {
+  async function choosePoem(id: string, focusPoet = false) {
     const response = await fetch(`/api/discovery/poems/${id}`);
     if (response.ok) {
       const poem = await response.json() as Poem;
       const poetResponse = await fetch(`/api/discovery/poets/${poem.poetId}/poems`);
       if (!poetResponse.ok) return;
       const poetData = await poetResponse.json() as Pick<HomeData, "poet" | "poems">;
+      requestPoetFocus(focusPoet);
       setData({ ...poetData, selectedPoem: poem });
       setActive(poem);
+      setShowingAllPoems(false);
       setShowingRandomSelection(false);
     }
     closeSearch();
@@ -102,20 +110,22 @@ export default function Home({ initialMyPoemId, onNavigate }: { initialMyPoemId?
     if (response.ok) setResults(await response.json());
   }
 
-  async function choosePoet(id: string) {
+  async function choosePoet(id: string, focusPoet = false) {
     const response = await fetch(`/api/discovery/poets/${id}/poems`);
     if (!response.ok) return;
     const value = await response.json();
     const poem = value.poems[0] ? await fetch(`/api/discovery/poems/${value.poems[0].poemId}`).then(response => response.json()) : null;
+    requestPoetFocus(focusPoet);
     setData({ poet: value.poet, poems: value.poems, selectedPoem: poem });
     setActive(poem);
+    setShowingAllPoems(false);
     setShowingRandomSelection(false);
     closeSearch();
   }
 
   function closeSearch() { setResults(null); setQuery(""); setSearchFocused(false); }
 
-  async function myPoems(preferredPoemId?: string) {
+  async function myPoems(preferredPoemId?: string, focusPoet = false) {
     const [poemsResponse, profileResponse] = await Promise.all([fetch("/api/poems", { credentials: "include" }), fetch("/api/poets/me", { credentials: "include" })]);
     if (!poemsResponse.ok || !profileResponse.ok) return;
     const poems = await poemsResponse.json();
@@ -127,9 +137,86 @@ export default function Home({ initialMyPoemId, onNavigate }: { initialMyPoemId?
     const selectedPoemId = summaries.some(poem => poem.poemId === preferredPoemId) ? preferredPoemId! : summaries[0].poemId;
     const detail = await fetch(`/api/discovery/poems/${selectedPoemId}`).then(response => response.json());
     const poet = { poetId: profile.poetId, displayName: profile.penName || profile.fullName, bio: profile.bio, poemCount: poems.length };
+    requestPoetFocus(focusPoet);
     setData({ poet, poems: summaries, selectedPoem: detail });
     setActive(detail);
+    setShowingAllPoems(false);
     setShowingRandomSelection(false);
+  }
+
+  async function showAllPoems(loadMore = false) {
+    const offset = loadMore ? recentOffset : 0;
+    const response = await fetch(`/api/discovery/poems/recent?limit=60&offset=${offset}`);
+    if (!response.ok) return false;
+    const value = await response.json() as { poems: RecentPoem[]; hasMore: boolean };
+    const poems = loadMore ? [...recentPoems, ...value.poems] : value.poems;
+    setRecentPoems(poems);
+    setRecentOffset(poems.length);
+    setMoreRecentPoems(value.hasMore);
+    setShowingAllPoems(true);
+    setShowingRandomSelection(false);
+    if (!loadMore && poems[0]) {
+      const detailResponse = await fetch(`/api/discovery/poems/${poems[0].poemId}`);
+      if (!detailResponse.ok) return false;
+      const detail = await detailResponse.json() as Poem;
+      setData({ poet: { poetId: "all-poems", displayName: "All Poems", bio: null, poemCount: poems.length }, poems: poems.map(poem => ({ poemId: poem.poemId, title: poem.title, excerpt: poem.excerpt, createdAt: poem.createdAt })), selectedPoem: detail });
+      setActive(detail);
+    }
+    return poems.length > 0;
+  }
+
+  async function chooseRecentPoem(id: string) {
+    const response = await fetch(`/api/discovery/poems/${id}`);
+    if (!response.ok) return;
+    const poem = await response.json() as Poem;
+    setActive(poem);
+    setShowingRandomSelection(false);
+  }
+
+  function scrollHorizontally(event: WheelEvent<HTMLDivElement>) {
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+    event.preventDefault();
+    event.currentTarget.scrollLeft += event.deltaY;
+  }
+
+  function requestPoetFocus(focusPoet: boolean) {
+    focusPoetAfterSelection.current = focusPoet;
+    if (focusPoet) setPoetFocusRequest(request => request + 1);
+  }
+
+  function beginHorizontalDrag(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return;
+    const element = event.currentTarget;
+    horizontalDrag.current = { element, pointerId: event.pointerId, startX: event.clientX, startScrollLeft: element.scrollLeft, moved: false, captured: false };
+  }
+
+  function dragHorizontally(event: PointerEvent<HTMLDivElement>) {
+    const drag = horizontalDrag.current;
+    if (!drag || drag.element !== event.currentTarget) return;
+    const distance = event.clientX - drag.startX;
+    if (Math.abs(distance) > 3 && !drag.moved) {
+      drag.moved = true;
+      drag.captured = true;
+      drag.element.setPointerCapture(drag.pointerId);
+    }
+    drag.element.scrollLeft = drag.startScrollLeft - distance;
+  }
+
+  function endHorizontalDrag(event: PointerEvent<HTMLDivElement>) {
+    const drag = horizontalDrag.current;
+    if (!drag || drag.element !== event.currentTarget) return;
+    if (drag.captured && drag.element.hasPointerCapture(event.pointerId)) drag.element.releasePointerCapture(event.pointerId);
+    horizontalDrag.current = null;
+    if (drag.moved) {
+      suppressClickAfterDrag.current = true;
+    }
+  }
+
+  function suppressDraggedClick(event: MouseEvent<HTMLDivElement>) {
+    if (!suppressClickAfterDrag.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressClickAfterDrag.current = false;
   }
 
   async function deleteActivePoem() {
@@ -145,6 +232,9 @@ export default function Home({ initialMyPoemId, onNavigate }: { initialMyPoemId?
   if (!data || !active) return <main className="grid min-h-screen place-items-center bg-[#080a0f] text-[#8b8992]">Gathering poems…</main>;
   const showingDirectory = searchFocused && query.trim().length < 2;
   const showingResults = searchFocused && query.trim().length >= 2 && results;
+  const displayedPoems: Array<PoemSummary & Partial<Pick<RecentPoem, "poetId" | "poetDisplayName">>> = showingAllPoems
+    ? recentPoems
+    : data.poems.map(poem => ({ ...poem, poetId: data.poet.poetId, poetDisplayName: data.poet.displayName }));
   const headerButton = "inline-flex items-center justify-center border border-[#3d3660] bg-[#161a27] px-3 py-2 text-xs uppercase tracking-wider text-[#c8c0b0] transition hover:border-[#c9a84c] hover:text-[#e8c97a]";
   const newPoemButton = "inline-flex items-center justify-center border border-[#c9a84c] bg-[#c9a84c] px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[#080a0f] transition hover:bg-[#e8c97a]";
   const viewerBioUrl = viewerPoetId && viewerPoetName ? `/poets/${viewerPoetId}/${slugify(viewerPoetName)}/bio` : null;
@@ -155,15 +245,16 @@ export default function Home({ initialMyPoemId, onNavigate }: { initialMyPoemId?
       <div className="relative w-64 max-w-[45vw]">
         <input value={query} onChange={event => void search(event.target.value)} onFocus={() => { setSearchFocused(true); void loadDirectory(); }} onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)} placeholder="Search poets or poems…" className="w-full border border-[#2a2840] bg-[#080a0f] px-3 py-2 text-xs outline-none focus:border-[#c9a84c]" />
         {(showingDirectory || showingResults) && <div className="absolute z-30 mt-1 max-h-80 w-full overflow-auto border border-[#2a2840] bg-[#161a27]">
-          {showingDirectory && <><p className="border-b border-[#2a2840] px-3 py-2 text-[10px] uppercase tracking-widest text-[#8b8992]">All poets</p>{directory?.map(poet => <button key={poet.poetId} onClick={() => void choosePoet(poet.poetId)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poet.displayName} <span className="text-[#8b8992]">· {poet.poemCount} poems</span></button>)}</>}
-          {showingResults && <>{results.poets.map(poet => <button key={poet.poetId} onClick={() => void choosePoet(poet.poetId)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poet.displayName} <span className="text-[#8b8992]">· {poet.poemCount} poems</span></button>)}{results.poems.map(poem => <button key={poem.poemId} onClick={() => void choosePoem(poem.poemId)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poem.title} <span className="text-[#8b8992]">by {poem.poetDisplayName}</span></button>)}</>}
+          {showingDirectory && <><p className="border-b border-[#2a2840] px-3 py-2 text-[10px] uppercase tracking-widest text-[#8b8992]">All poets</p>{directory?.map(poet => <button key={poet.poetId} onClick={() => void choosePoet(poet.poetId, true)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poet.displayName} <span className="text-[#8b8992]">· {poet.poemCount} poems</span></button>)}</>}
+          {showingResults && <>{results.poets.map(poet => <button key={poet.poetId} onClick={() => void choosePoet(poet.poetId, true)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poet.displayName} <span className="text-[#8b8992]">· {poet.poemCount} poems</span></button>)}{results.poems.map(poem => <button key={poem.poemId} onClick={() => void choosePoem(poem.poemId, true)} className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs">{poem.title} <span className="text-[#8b8992]">by {poem.poetDisplayName}</span></button>)}</>}
         </div>}
       </div>
       <div className="flex max-w-[40vw] flex-col items-center gap-1"><img src={ravenLogo} alt="Think or Drink Poetry" className="h-10 max-w-full object-contain" />{viewer && (hasViewerBio && viewerBioUrl ? <div className="flex max-w-full items-baseline gap-1 text-xs italic text-[#8b8992]"><span className="truncate">{viewerBio}</span><a href={viewerBioUrl} className="shrink-0 not-italic text-[#c9a84c] hover:text-[#e8c97a]">See full bio</a></div> : <button type="button" onClick={() => onNavigate("/account/setup")} className="text-xs text-[#c9a84c] hover:text-[#e8c97a]">Create a bio</button>)}</div>
-      {viewer ? <div className="ml-auto flex flex-wrap justify-end gap-2"><button type="button" onClick={() => void myPoems()} className={headerButton}>My Poems</button><button type="button" onClick={() => onNavigate("/my-poems/new")} className={newPoemButton}>+ New Poem</button><button type="button" onClick={() => onNavigate("/account/setup")} className={headerButton}>Profile</button><button type="button" onClick={() => void signOut()} className={headerButton}>Sign Out</button></div> : <button type="button" onClick={() => onNavigate("/sign-in")} className={headerButton}>Sign In</button>}
+      {viewer ? <div className="ml-auto flex flex-wrap justify-end gap-2"><button type="button" onClick={() => void myPoems(undefined, true)} className={headerButton}>My Poems</button><button type="button" onClick={() => onNavigate("/my-poems/new")} className={newPoemButton}>+ New Poem</button><button type="button" onClick={() => onNavigate("/account/setup")} className={headerButton}>Profile</button><button type="button" onClick={() => void signOut()} className={headerButton}>Sign Out</button></div> : <button type="button" onClick={() => onNavigate("/sign-in")} className={headerButton}>Sign In</button>}
     </header>
+    <section className="shrink-0 border-b border-[#1e2235] bg-[#0d0f1a]"><div className="flex items-center justify-between px-4 pt-2 sm:px-7"><p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">Browse poets</p><p className="text-xs text-[#8b8992]">Drag to explore</p></div><div className="flex gap-2 px-4 py-2 sm:px-7"><button type="button" onClick={() => void showAllPoems()} className={`shrink-0 whitespace-nowrap border px-3 py-2 text-left text-xs transition ${showingAllPoems ? "border-[#c9a84c] bg-[#161a27] text-[#e8c97a]" : "border-[#2a2840] bg-[#080a0f] hover:border-[#c9a84c]"}`}>All Poets <span className="text-[#8b8992]">(newest)</span></button><div onWheel={scrollHorizontally} onPointerDown={beginHorizontalDrag} onPointerMove={dragHorizontally} onPointerUp={endHorizontalDrag} onPointerCancel={endHorizontalDrag} onClickCapture={suppressDraggedClick} className="poetry-horizontal-scroll flex min-w-0 flex-1 gap-2 overflow-x-auto">{directory?.map(poet => <button type="button" key={poet.poetId} ref={element => { poetChips.current[poet.poetId] = element; }} onClick={() => void choosePoet(poet.poetId)} className={`shrink-0 whitespace-nowrap border px-3 py-2 text-left text-xs transition ${!showingAllPoems && data.poet.poetId === poet.poetId ? "border-[#c9a84c] bg-[#161a27] text-[#e8c97a]" : "border-[#2a2840] bg-[#080a0f] hover:border-[#c9a84c]"}`}>{poet.displayName} <span className="text-[#8b8992]">({poet.poemCount})</span></button>)}</div></div></section>
+    <section className="shrink-0 border-b border-[#1e2235] bg-[#10121e]"><div className="flex items-center justify-between px-4 pt-2 sm:px-7"><p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">{showingAllPoems ? "All poems — newest added first" : `${data.poet.displayName} — ${data.poet.poemCount} poems`}</p><p className="text-xs text-[#8b8992]">Drag to explore</p></div><div onWheel={scrollHorizontally} onPointerDown={beginHorizontalDrag} onPointerMove={dragHorizontally} onPointerUp={endHorizontalDrag} onPointerCancel={endHorizontalDrag} onClickCapture={suppressDraggedClick} className="poetry-horizontal-scroll flex gap-2 overflow-x-auto px-4 py-2 sm:px-7">{displayedPoems.map(poem => <button type="button" key={poem.poemId} onClick={() => void (showingAllPoems ? chooseRecentPoem(poem.poemId) : choosePoem(poem.poemId))} className={`shrink-0 whitespace-nowrap border px-3 py-2 text-left text-xs transition ${active.poemId === poem.poemId ? "border-[#c9a84c] bg-[#161a27]" : "border-[#2a2840] bg-[#080a0f] hover:border-[#c9a84c]"}`}><span className="font-serif text-sm">{poem.title}</span><span className="ml-2 text-[10px] uppercase tracking-wider text-[#8b8992]">{formatDate(poem.createdAt)}</span></button>)}{showingAllPoems && moreRecentPoems && <button type="button" onClick={() => void showAllPoems(true)} className="shrink-0 whitespace-nowrap border border-dashed border-[#3d3660] px-3 py-2 text-xs uppercase tracking-widest text-[#c9a84c] hover:border-[#c9a84c]">Load more poems</button>}</div></section>
     <div className="flex min-h-0 flex-1">
-      <aside className="poetry-scroll h-full w-64 shrink-0 overflow-y-auto border-r border-[#1e2235] bg-[#0d0f1a]"><div className="border-b border-[#1e2235] p-4"><p className="text-xs uppercase tracking-widest text-[#c9a84c]">{data.poet.displayName}</p>{showingRandomSelection && <p className="mt-1 text-xs italic text-[#c8c0b0]">Random poet of the day</p>}<p className="mt-1 text-xs text-[#8b8992]">{data.poet.poemCount} poems</p></div>{data.poems.map(poem => <button key={poem.poemId} onClick={() => void choosePoem(poem.poemId)} className={`block w-full border-b border-[#1a1d2a] px-4 py-4 text-left ${active.poemId === poem.poemId ? "border-l-2 border-l-[#c9a84c] bg-[#161a27]" : ""}`}><p className="text-sm">{poem.title}</p><p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs italic text-[#8b8992]">{poem.excerpt}</p><p className="mt-2 text-[10px] uppercase tracking-wider text-[#6f6b78]">Created {formatDate(poem.createdAt)}</p></button>)}</aside>
       <article ref={poemPanel} className="poetry-scroll h-full flex-1 overflow-y-auto px-6 py-12"><div className="mx-auto max-w-2xl"><p className="text-center text-xs uppercase tracking-[.25em]"><a href={`/poets/${active.poetId}/${slugify(active.poetDisplayName)}/bio`} className="text-[#c9a84c] hover:text-[#e8c97a]">{active.poetDisplayName}</a></p><div className="mt-3 flex items-center justify-center gap-3"><h1 className="font-serif text-4xl">{active.title}</h1>{viewerPoetId === active.poetId && <><button type="button" onClick={() => onNavigate(`/my-poems/${active.poemId}/edit`)} title="Edit this poem" aria-label={`Edit ${active.title}`} className="text-xl text-[#c9a84c] hover:text-[#e8c97a]">✎</button><button type="button" onClick={() => void deleteActivePoem()} title="Delete this poem" aria-label={`Delete ${active.title}`} className="text-lg text-red-300 hover:text-red-200">🗑</button></>}</div><p className="mt-3 text-center text-xs"><a href={`/poems/${active.poemId}/${slugify(active.title)}`} className="text-[#c9a84c]">Open shareable poem page</a></p><div className="mx-auto my-6 h-px w-48 bg-[#c9a84c55]" /><div className="whitespace-pre-wrap font-serif text-lg italic leading-loose text-[#c8c0b0]">{active.poem}</div></div></article>
       {poemOfTheDay && <aside className="poetry-scroll hidden h-full w-[23rem] shrink-0 overflow-y-auto border-l border-[#1e2235] bg-[#0d0f1a] xl:block"><div className="border-b border-[#1e2235] p-4"><p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">Poem of the Day</p><p className="mt-1 text-xs text-[#8b8992]">A shared reading for today</p></div><button type="button" onClick={() => void choosePoem(poemOfTheDay.poemId)} className="block w-full px-6 py-8 text-left hover:bg-[#161a27]"><p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">{poemOfTheDay.poetDisplayName}</p><h2 className="mt-3 font-serif text-3xl text-[#e4ddd0]">{poemOfTheDay.title}</h2><div className="my-5 h-px w-32 bg-[#c9a84c55]" /><div className="whitespace-pre-wrap font-serif text-base italic leading-loose text-[#c8c0b0]">{poemOfTheDay.poem}</div><p className="mt-6 text-xs text-[#c9a84c]">Read in the main panel →</p></button></aside>}
     </div>
