@@ -134,15 +134,15 @@ public class DiscoveryController {
                     rs.getObject(4, java.time.LocalDate.class) == null ? rs.getTimestamp(5).toInstant()
                             : rs.getObject(4, java.time.LocalDate.class).atStartOfDay().toInstant(java.time.ZoneOffset.UTC)), poetId); }
     private PoemDetail poem(UUID id) { PoemDetail result = jdbc.query("""
-            select po.id, po.poet_id, po.title, po.poem, coalesce(nullif(p.pen_name, ''), p.full_name), po.legacy_submitted_on, po.created_at
+            select po.id, po.poet_id, po.title, po.poem, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, po.legacy_submitted_on, po.created_at
             from poem po join poet p on p.id = po.poet_id where po.id = ?
-            """, rs -> rs.next() ? new PoemDetail(UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)), rs.getString(3), rs.getString(4), rs.getString(5), rs.getObject(6, java.time.LocalDate.class) == null ? rs.getTimestamp(7).toInstant() : rs.getObject(6, java.time.LocalDate.class).atStartOfDay().toInstant(java.time.ZoneOffset.UTC)) : null, id);
+            """, rs -> rs.next() ? new PoemDetail(UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getObject(7, java.time.LocalDate.class) == null ? rs.getTimestamp(8).toInstant() : rs.getObject(7, java.time.LocalDate.class).atStartOfDay().toInstant(java.time.ZoneOffset.UTC)) : null, id);
         if (result == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND); return result; }
     private static String clientIp(HttpServletRequest request) { String forwarded = request.getHeader("X-Forwarded-For"); return forwarded == null || forwarded.isBlank() ? request.getRemoteAddr() : forwarded.split(",", 2)[0].trim(); }
 
     public record PoetSummary(UUID poetId, String displayName, String bio, int poemCount) {}
     public record PoemSummary(UUID poemId, String title, String excerpt, Instant createdAt) {}
-    public record PoemDetail(UUID poemId, UUID poetId, String title, String poem, String poetDisplayName, Instant createdAt) {}
+    public record PoemDetail(UUID poemId, UUID poetId, String title, String poem, String poetDisplayName, String poetBio, Instant createdAt) {}
     public record RecentPoemSummary(UUID poemId, UUID poetId, String title, String poetDisplayName, String excerpt, Instant createdAt) {}
     public record RecentPoemsResponse(List<RecentPoemSummary> poems, boolean hasMore) {}
     public record HomeResponse(PoetSummary poet, List<PoemSummary> poems, PoemDetail selectedPoem) {}

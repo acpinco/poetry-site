@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -81,15 +82,17 @@ public class PublicPageController {
 
     @GetMapping(value = {"/poets/{poetId}/bio", "/poets/{poetId}/{slug}/bio"}, produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
-    public String poetBio(@PathVariable UUID poetId, @PathVariable(required = false) String slug) {
+    public String poetBio(@PathVariable UUID poetId, @PathVariable(required = false) String slug,
+            @RequestParam(name = "poem", required = false) UUID poemId) {
         Poet poet = poetById(poetId);
         String canonical = siteUrl + "/poets/" + poet.id() + "/" + slugify(poet.name()) + "/bio";
         String bio = poet.bio() == null || poet.bio().isBlank()
                 ? poet.name() + " has not added a biography yet."
                 : poet.bio();
         String poemUrl = siteUrl + "/poets/" + poet.id() + "/" + slugify(poet.name());
+        String homeUrl = poemId == null ? siteUrl + "/home" : siteUrl + "/home?poem=" + poemId;
         return page(poet.name() + " bio", bio, canonical,
-                "<article><p><a class=\"back\" href=\"" + attribute(poemUrl) + "\">← Back to poems</a></p><p class=\"byline\">Poet bio</p><h1>" + text(poet.name()) + "</h1><div class=\"bio\">" + text(bio)
+                "<article><p><a class=\"back\" href=\"" + attribute(homeUrl) + "\">← Back to poems</a></p><p class=\"byline\">Poet bio</p><h1>" + text(poet.name()) + "</h1><div class=\"bio\">" + text(bio)
                         + "</div><p><a href=\"" + attribute(poemUrl) + "\">Read poems by " + text(poet.name()) + "</a></p></article>",
                 poetJsonLd(poet, canonical), "profile");
     }

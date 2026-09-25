@@ -35,8 +35,7 @@ export default function App() {
   const isContactPage = pathname === "/contact";
   const homeQuery = new URLSearchParams(queryString);
   const hasMagicLinkError = homeQuery.get("error") === "magic-link";
-  const showMyPoems = homeQuery.get("mine") === "1";
-  const selectedMyPoemId = showMyPoems ? homeQuery.get("poem") ?? undefined : undefined;
+  const selectedMyPoemId = homeQuery.get("poem") ?? undefined;
 
   useEffect(() => { if (pathname !== "/home") void loadSession(); }, [pathname]);
 
