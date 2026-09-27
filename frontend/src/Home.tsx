@@ -236,6 +236,21 @@ export default function Home({
     setActive(poem);
   }
 
+  async function chooseAdjacentPoem(direction: -1 | 1) {
+    if (!active) return;
+    const activeIndex = displayedPoems.findIndex(
+      (poem) => poem.poemId === active.poemId,
+    );
+    const adjacentPoem = displayedPoems[activeIndex + direction];
+    if (!adjacentPoem) return;
+
+    if (showingAllPoems) {
+      await chooseRecentPoem(adjacentPoem.poemId);
+      return;
+    }
+    await choosePoem(adjacentPoem.poemId);
+  }
+
   async function deleteActivePoem() {
     if (!window.confirm(`Delete “${active?.title}”? This cannot be undone.`))
       return;
@@ -309,7 +324,9 @@ export default function Home({
           mobilePoemPanel={mobilePoemPanel}
           onChoosePoem={choosePoem}
           onDelete={deleteActivePoem}
+          onNextPoem={() => chooseAdjacentPoem(1)}
           onNavigate={onNavigate}
+          onPreviousPoem={() => chooseAdjacentPoem(-1)}
           poemOfTheDay={poemOfTheDay}
           viewerPoetId={viewerPoetId}
         />

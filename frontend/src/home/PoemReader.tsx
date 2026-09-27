@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { useRef, type RefObject, type TouchEvent } from "react";
 import { bioSnippet, slugify } from "../poetry";
 import type { Poem } from "./types";
 
@@ -7,7 +7,9 @@ type PoemReaderProps = {
   mobilePoemPanel: RefObject<HTMLElement | null>;
   onChoosePoem: (poemId: string) => Promise<unknown>;
   onDelete: () => Promise<void>;
+  onNextPoem: () => Promise<void>;
   onNavigate: (path: string) => void;
+  onPreviousPoem: () => Promise<void>;
   poemOfTheDay: Poem | null;
   poemPanel: RefObject<HTMLElement | null>;
   viewer: boolean;
@@ -19,13 +21,46 @@ export function MobilePoemReader({
   mobilePoemPanel,
   onChoosePoem,
   onDelete,
+  onNextPoem,
   onNavigate,
+  onPreviousPoem,
   poemOfTheDay,
   viewerPoetId,
 }: Omit<PoemReaderProps, "poemPanel" | "viewer">) {
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  function startSwipe(event: TouchEvent<HTMLElement>) {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function finishSwipe(event: TouchEvent<HTMLElement>) {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || event.changedTouches.length !== 1) return;
+
+    const target = event.target as HTMLElement;
+    if (target.closest("a, button, input, select, summary, textarea")) return;
+
+    const touch = event.changedTouches[0];
+    const horizontalDistance = touch.clientX - start.x;
+    const verticalDistance = touch.clientY - start.y;
+    if (
+      Math.abs(horizontalDistance) < 64 ||
+      Math.abs(horizontalDistance) <= Math.abs(verticalDistance)
+    ) {
+      return;
+    }
+
+    void (horizontalDistance < 0 ? onNextPoem() : onPreviousPoem());
+  }
+
   return (
     <article
       ref={mobilePoemPanel}
+      onTouchEnd={finishSwipe}
+      onTouchStart={startSwipe}
       className="poetry-scroll min-h-0 flex-1 overflow-y-auto px-5 py-8"
     >
       <div className="mx-auto max-w-xl">
@@ -52,7 +87,10 @@ export function DesktopPoemReader({
   poemOfTheDay,
   poemPanel,
   viewerPoetId,
-}: Omit<PoemReaderProps, "mobilePoemPanel" | "viewer">) {
+}: Omit<
+  PoemReaderProps,
+  "mobilePoemPanel" | "onNextPoem" | "onPreviousPoem" | "viewer"
+>) {
   return (
     <div className="flex min-h-0 flex-1">
       <article
