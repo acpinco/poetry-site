@@ -323,11 +323,12 @@ function MobilePoemOfTheDay({
 }) {
   return (
     <details className="mb-8 border border-[#2a2840] bg-[#0d0f1a] p-4">
-      <summary className="cursor-pointer">
-        <span className="block text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+      <summary className="cursor-pointer list-none">
+        <span className="flex items-center gap-2 text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+          <span aria-hidden="true">▸</span>
           Poem of the Day
         </span>
-        <span className="mt-2 block font-serif text-lg text-[#e4ddd0]">
+        <span className="mt-2 block font-serif text-base text-[#e4ddd0]">
           {poem.title}
         </span>
       </summary>
@@ -339,8 +340,8 @@ function MobilePoemOfTheDay({
         <p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">
           {poem.poetDisplayName}
         </p>
-        <h2 className="mt-2 font-serif text-2xl">{poem.title}</h2>
-        <p className="mt-3 font-serif text-sm italic leading-relaxed text-[#c8c0b0]">
+        <h2 className="mt-2 font-serif text-xl">{poem.title}</h2>
+        <p className="mt-3 font-serif text-[13px] italic leading-relaxed text-[#c8c0b0]">
           {poem.poem.slice(0, 300)}
           {poem.poem.length > 300 ? "…" : ""}
         </p>
