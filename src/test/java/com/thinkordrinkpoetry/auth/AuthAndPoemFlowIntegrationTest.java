@@ -132,6 +132,26 @@ class AuthAndPoemFlowIntegrationTest {
     }
 
     @Test
+    void poemOfTheDayHasAPublicPageAndSitemapEntry() throws Exception {
+        Cookie session = requestSession("daily-poem@example.com");
+        createPoet(session, "Daily", "Poet");
+        mockMvc.perform(post("/api/poems")
+                        .cookie(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Featured Poem","poem":"A poem for today"}
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/poem-of-the-day"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Poem of the Day")));
+        mockMvc.perform(get("/sitemap.xml"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/poem-of-the-day")));
+    }
+
+    @Test
     void configuredAdminCanListAndLockAnotherPoet() throws Exception {
         Cookie adminSession = requestSession("admin@example.com");
         createPoet(adminSession, "Admin", "Poet");

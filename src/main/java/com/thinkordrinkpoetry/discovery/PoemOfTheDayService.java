@@ -9,18 +9,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-class PoemOfTheDayService {
+public class PoemOfTheDayService {
     private static final ZoneId SITE_TIME_ZONE = ZoneId.of("America/Denver");
     private static final long DAILY_ASSIGNMENT_LOCK = 4_538_649_217L;
 
     private final JdbcTemplate jdbc;
 
-    PoemOfTheDayService(JdbcTemplate jdbc) {
+    public PoemOfTheDayService(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
     @Transactional
-    UUID poemIdForToday() {
+    public UUID poemIdForToday() {
         // The advisory lock makes simultaneous first visits at midnight choose one poem,
         // rather than creating competing assignments for the same day.
         jdbc.execute("select pg_advisory_xact_lock(" + DAILY_ASSIGNMENT_LOCK + ")");

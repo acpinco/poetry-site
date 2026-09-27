@@ -332,6 +332,12 @@ function MobilePoemOfTheDay({
           {poem.title}
         </span>
       </summary>
+      <a
+        href="/poem-of-the-day"
+        className="mt-3 block text-xs text-[#c9a84c] hover:text-[#e8c97a]"
+      >
+        Open today’s shareable page →
+      </a>
       <button
         type="button"
         onClick={() => void onChoosePoem(poem.poemId)}
@@ -367,6 +373,12 @@ function DesktopPoemOfTheDay({
         <p className="mt-1 text-xs text-[#8b8992]">
           A shared reading for today
         </p>
+        <a
+          href="/poem-of-the-day"
+          className="mt-3 inline-block text-xs text-[#c9a84c] hover:text-[#e8c97a]"
+        >
+          Open today’s shareable page →
+        </a>
       </div>
       <button
         type="button"

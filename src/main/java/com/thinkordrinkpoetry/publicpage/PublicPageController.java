@@ -1,5 +1,6 @@
 package com.thinkordrinkpoetry.publicpage;
 
+import com.thinkordrinkpoetry.discovery.PoemOfTheDayService;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -18,10 +19,15 @@ import org.springframework.http.HttpStatus;
 @Controller
 public class PublicPageController {
     private final JdbcTemplate jdbc;
+    private final PoemOfTheDayService poemOfTheDay;
     private final String siteUrl;
 
-    PublicPageController(JdbcTemplate jdbc, @Value("${app.auth.frontend-base-url}") String siteUrl) {
+    PublicPageController(
+            JdbcTemplate jdbc,
+            PoemOfTheDayService poemOfTheDay,
+            @Value("${app.auth.frontend-base-url}") String siteUrl) {
         this.jdbc = jdbc;
+        this.poemOfTheDay = poemOfTheDay;
         this.siteUrl = siteUrl.replaceAll("/+$", "");
     }
 
@@ -58,6 +64,28 @@ public class PublicPageController {
                 + "</h1><p class=\"date\">Published " + poem.publishedOn() + "</p><div class=\"poem\">"
                         + text(poem.body()) + "</div><p><a href=\"" + attribute(siteUrl + "/poets/" + poem.poetId() + "/" + slugify(poem.author()))
                         + "\">More poems by " + text(poem.author()) + "</a></p></article>", poemJsonLd(poem, canonical), "article");
+    }
+
+    @GetMapping(value = "/poem-of-the-day", produces = MediaType.TEXT_HTML_VALUE)
+    @ResponseBody
+    public String poemOfTheDay() {
+        UUID poemId = poemOfTheDay.poemIdForToday();
+        if (poemId == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No poems are available yet.");
+
+        Poem poem = poemById(poemId);
+        String canonical = siteUrl + "/poem-of-the-day";
+        String poemUrl = siteUrl + "/poems/" + poem.id() + "/" + slugify(poem.title());
+        String body = "<article><p class=\"byline\">Poem of the Day</p><h1>" + text(poem.title())
+                + "</h1><p class=\"byline\">By " + text(poem.author()) + "</p><div class=\"poem\">"
+                + text(poem.body()) + "</div><p><a href=\"" + attribute(poemUrl)
+                + "\">Open this poem’s permanent page</a></p></article>";
+        return page(
+                "Poem of the Day: " + poem.title() + " by " + poem.author(),
+                "Today’s featured poem: " + poem.title() + " by " + poem.author() + ".",
+                canonical,
+                body,
+                poemJsonLd(poem, canonical),
+                "article");
     }
 
     @GetMapping(value = {"/poets/{poetId}", "/poets/{poetId}/{slug}"}, produces = MediaType.TEXT_HTML_VALUE)
@@ -115,7 +143,12 @@ public class PublicPageController {
                 where nullif(btrim(p.bio), '') is not null
                 group by p.id, p.pen_name, p.full_name, p.updated_at
                 """, (rs, row) -> new SitemapEntry("/poets/" + rs.getObject(1, UUID.class) + "/" + slugify(rs.getString(2)) + "/bio", rs.getObject(3, LocalDate.class)));
-        String entries = java.util.stream.Stream.concat(java.util.stream.Stream.of(new SitemapEntry("/", null)), java.util.stream.Stream.concat(poems.stream(), java.util.stream.Stream.concat(poets.stream(), bios.stream())))
+        String entries = java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(
+                                new SitemapEntry("/", null),
+                                new SitemapEntry("/poem-of-the-day", null)),
+                        java.util.stream.Stream.concat(
+                                poems.stream(), java.util.stream.Stream.concat(poets.stream(), bios.stream())))
                 .map(entry -> "<url><loc>" + xml(siteUrl + entry.path()) + "</loc>" + (entry.lastModified() == null ? "" : "<lastmod>" + entry.lastModified() + "</lastmod>") + "</url>")
                 .reduce("", String::concat);
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">" + entries + "</urlset>";
