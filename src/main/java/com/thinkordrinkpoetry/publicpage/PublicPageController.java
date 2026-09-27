@@ -123,7 +123,32 @@ public class PublicPageController {
 
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
     @ResponseBody
-    public String robots() { return "User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /swagger-ui\nDisallow: /v3/\nSitemap: " + siteUrl + "/sitemap.xml\n"; }
+    public String robots() {
+        return """
+                User-agent: *
+                Allow: /
+                Disallow: /api/
+                Disallow: /swagger-ui
+                Disallow: /v3/
+
+                User-agent: OAI-SearchBot
+                Allow: /
+                Disallow: /api/
+                Disallow: /swagger-ui
+                Disallow: /v3/
+
+                User-agent: Google-Extended
+                Allow: /
+                Disallow: /api/
+                Disallow: /swagger-ui
+                Disallow: /v3/
+
+                User-agent: GPTBot
+                Disallow: /
+
+                Sitemap: %s/sitemap.xml
+                """.formatted(siteUrl);
+    }
 
     private Poem poemById(UUID id) {
         Poem poem = jdbc.query("""

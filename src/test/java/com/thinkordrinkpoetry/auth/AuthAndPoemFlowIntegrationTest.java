@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -117,6 +118,17 @@ class AuthAndPoemFlowIntegrationTest {
 
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void robotsFileAllowsSearchCrawlersAndReferencesTheSitemap() throws Exception {
+        mockMvc.perform(get("/robots.txt"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
+                .andExpect(content().string(containsString("User-agent: OAI-SearchBot")))
+                .andExpect(content().string(containsString("User-agent: Google-Extended")))
+                .andExpect(content().string(containsString("User-agent: GPTBot\nDisallow: /")))
+                .andExpect(content().string(containsString("Sitemap: http://localhost:5173/sitemap.xml")));
     }
 
     @Test
