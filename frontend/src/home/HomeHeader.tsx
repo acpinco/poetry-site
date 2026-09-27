@@ -127,6 +127,7 @@ export default function HomeHeader({
         />
         {mobilePanel === "search" && (
           <MobileSearchResults
+            directory={directory}
             query={query}
             results={results}
             onChoosePoet={(poetId) => {
@@ -240,11 +241,13 @@ export default function HomeHeader({
 }
 
 function MobileSearchResults({
+  directory,
   query,
   results,
   onChoosePoet,
   onChoosePoem,
 }: {
+  directory: Poet[] | null;
   query: string;
   results: SearchResults | null;
   onChoosePoet: (poetId: string) => void;
@@ -252,10 +255,23 @@ function MobileSearchResults({
 }) {
   if (query.trim().length < 2) {
     return (
-      <div className="mt-2">
-        <p className="px-1 py-3 text-xs text-[#8b8992]">
-          Enter at least two characters.
+      <div className="mt-2 max-h-60 overflow-y-auto border border-[#2a2840] bg-[#161a27]">
+        <p className="border-b border-[#2a2840] px-3 py-2 text-[10px] uppercase tracking-widest text-[#8b8992]">
+          All poets
         </p>
+        {directory?.map((poet) => (
+          <button
+            key={poet.poetId}
+            type="button"
+            onClick={() => onChoosePoet(poet.poetId)}
+            className="block w-full border-b border-[#2a2840] px-3 py-3 text-left text-sm"
+          >
+            {poet.displayName}{" "}
+            <span className="text-xs text-[#8b8992]">
+              · {poet.poemCount} poems
+            </span>
+          </button>
+        ))}
       </div>
     );
   }
