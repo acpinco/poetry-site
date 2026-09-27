@@ -4,6 +4,8 @@ import type { Poem } from "./types";
 
 type PoemReaderProps = {
   active: Poem;
+  hasNextPoem: boolean;
+  hasPreviousPoem: boolean;
   mobilePoemPanel: RefObject<HTMLElement | null>;
   onChoosePoem: (poemId: string) => Promise<unknown>;
   onDelete: () => Promise<void>;
@@ -18,6 +20,8 @@ type PoemReaderProps = {
 
 export function MobilePoemReader({
   active,
+  hasNextPoem,
+  hasPreviousPoem,
   mobilePoemPanel,
   onChoosePoem,
   onDelete,
@@ -66,6 +70,12 @@ export function MobilePoemReader({
       <div className="mx-auto max-w-xl">
         <PoemDetails
           compact
+          navigation={{
+            hasNextPoem,
+            hasPreviousPoem,
+            onNextPoem,
+            onPreviousPoem,
+          }}
           poem={active}
           viewerPoetId={viewerPoetId}
           onDelete={onDelete}
@@ -89,7 +99,12 @@ export function DesktopPoemReader({
   viewerPoetId,
 }: Omit<
   PoemReaderProps,
-  "mobilePoemPanel" | "onNextPoem" | "onPreviousPoem" | "viewer"
+  | "hasNextPoem"
+  | "hasPreviousPoem"
+  | "mobilePoemPanel"
+  | "onNextPoem"
+  | "onPreviousPoem"
+  | "viewer"
 >) {
   return (
     <div className="flex min-h-0 flex-1">
@@ -144,12 +159,19 @@ export function HomeFooter({
 
 function PoemDetails({
   compact = false,
+  navigation,
   onDelete,
   onNavigate,
   poem,
   viewerPoetId,
 }: {
   compact?: boolean;
+  navigation?: {
+    hasNextPoem: boolean;
+    hasPreviousPoem: boolean;
+    onNextPoem: () => Promise<void>;
+    onPreviousPoem: () => Promise<void>;
+  };
   onDelete: () => Promise<void>;
   onNavigate: (path: string) => void;
   poem: Poem;
@@ -179,39 +201,43 @@ function PoemDetails({
           </a>
         </p>
       )}
-      <div className="mt-3 flex items-center justify-center gap-3">
-        <h1
-          className={
-            compact
-              ? "text-center font-serif text-3xl leading-tight"
-              : "font-serif text-4xl"
-          }
-        >
-          {poem.title}
-        </h1>
-        {ownsPoem && (
-          <>
-            <button
-              type="button"
-              onClick={() => onNavigate(`/my-poems/${poem.poemId}/edit`)}
-              title="Edit this poem"
-              aria-label={`Edit ${poem.title}`}
-              className="text-xl text-[#c9a84c] hover:text-[#e8c97a]"
-            >
-              ✎
-            </button>
-            <button
-              type="button"
-              onClick={() => void onDelete()}
-              title="Delete this poem"
-              aria-label={`Delete ${poem.title}`}
-              className="text-lg text-red-300 hover:text-red-200"
-            >
-              🗑
-            </button>
-          </>
-        )}
-      </div>
+      {navigation ? (
+        <>
+          <div className="mt-3 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
+            <PoemNavigationButton
+              direction="previous"
+              available={navigation.hasPreviousPoem}
+              onClick={navigation.onPreviousPoem}
+            />
+            <h1 className="text-center font-serif text-3xl leading-tight">
+              {poem.title}
+            </h1>
+            <PoemNavigationButton
+              direction="next"
+              available={navigation.hasNextPoem}
+              onClick={navigation.onNextPoem}
+            />
+          </div>
+          {ownsPoem && (
+            <PoemActions
+              poem={poem}
+              onDelete={onDelete}
+              onNavigate={onNavigate}
+            />
+          )}
+        </>
+      ) : (
+        <div className="mt-3 flex items-center justify-center gap-3">
+          <h1 className="font-serif text-4xl">{poem.title}</h1>
+          {ownsPoem && (
+            <PoemActions
+              poem={poem}
+              onDelete={onDelete}
+              onNavigate={onNavigate}
+            />
+          )}
+        </div>
+      )}
       <p className="mt-3 text-center text-xs">
         <a
           href={`/poems/${poem.poemId}/${slugify(poem.title)}`}
@@ -227,6 +253,64 @@ function PoemDetails({
         {poem.poem}
       </div>
     </>
+  );
+}
+
+function PoemNavigationButton({
+  available,
+  direction,
+  onClick,
+}: {
+  available: boolean;
+  direction: "next" | "previous";
+  onClick: () => Promise<void>;
+}) {
+  if (!available) return <span aria-hidden="true" />;
+
+  const isPrevious = direction === "previous";
+  return (
+    <button
+      type="button"
+      onClick={() => void onClick()}
+      aria-label={`${isPrevious ? "Previous" : "Next"} poem`}
+      title={`${isPrevious ? "Previous" : "Next"} poem`}
+      className="grid h-9 w-9 place-items-center rounded-full border border-[#3d3660] text-lg text-[#c9a84c] transition hover:border-[#c9a84c] hover:text-[#e8c97a]"
+    >
+      {isPrevious ? "←" : "→"}
+    </button>
+  );
+}
+
+function PoemActions({
+  onDelete,
+  onNavigate,
+  poem,
+}: {
+  onDelete: () => Promise<void>;
+  onNavigate: (path: string) => void;
+  poem: Poem;
+}) {
+  return (
+    <span className="flex items-center justify-center gap-3">
+      <button
+        type="button"
+        onClick={() => onNavigate(`/my-poems/${poem.poemId}/edit`)}
+        title="Edit this poem"
+        aria-label={`Edit ${poem.title}`}
+        className="text-xl text-[#c9a84c] hover:text-[#e8c97a]"
+      >
+        ✎
+      </button>
+      <button
+        type="button"
+        onClick={() => void onDelete()}
+        title="Delete this poem"
+        aria-label={`Delete ${poem.title}`}
+        className="text-lg text-red-300 hover:text-red-200"
+      >
+        🗑
+      </button>
+    </span>
   );
 }
 

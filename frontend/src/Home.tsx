@@ -289,6 +289,11 @@ export default function Home({
         poetId: data.poet.poetId,
         poetDisplayName: data.poet.displayName,
       }));
+  const activePoemIndex = displayedPoems.findIndex(
+    (poem) => poem.poemId === active.poemId,
+  );
+  const hasPreviousPoem = activePoemIndex > 0;
+  const hasNextPoem = activePoemIndex < displayedPoems.length - 1;
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[#080a0f] text-[#e4ddd0]">
       <HomeHeader
@@ -327,6 +332,8 @@ export default function Home({
           onNextPoem={() => chooseAdjacentPoem(1)}
           onNavigate={onNavigate}
           onPreviousPoem={() => chooseAdjacentPoem(-1)}
+          hasNextPoem={hasNextPoem}
+          hasPreviousPoem={hasPreviousPoem}
           poemOfTheDay={poemOfTheDay}
           viewerPoetId={viewerPoetId}
         />
