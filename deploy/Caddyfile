@@ -32,6 +32,14 @@
         reverse_proxy app:8080
     }
 
+    # This is a stable, server-rendered daily feature page. It must reach the
+    # backend rather than falling through to the React application's index.html.
+    handle /poem-of-the-day {
+        reverse_proxy app:8080 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+
     handle /sitemap.xml {
         reverse_proxy app:8080
     }
