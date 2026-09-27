@@ -68,6 +68,9 @@ export function MobilePoemReader({
       className="poetry-scroll min-h-0 flex-1 overflow-y-auto px-5 py-8"
     >
       <div className="mx-auto max-w-xl">
+        {poemOfTheDay && poemOfTheDay.poemId !== active.poemId && (
+          <MobilePoemOfTheDay poem={poemOfTheDay} onChoosePoem={onChoosePoem} />
+        )}
         <PoemDetails
           compact
           navigation={{
@@ -81,9 +84,6 @@ export function MobilePoemReader({
           onDelete={onDelete}
           onNavigate={onNavigate}
         />
-        {poemOfTheDay && poemOfTheDay.poemId !== active.poemId && (
-          <MobilePoemOfTheDay poem={poemOfTheDay} onChoosePoem={onChoosePoem} />
-        )}
       </div>
     </article>
   );
@@ -322,9 +322,14 @@ function MobilePoemOfTheDay({
   poem: Poem;
 }) {
   return (
-    <details className="mt-12 border border-[#2a2840] bg-[#0d0f1a] p-4">
-      <summary className="cursor-pointer text-xs uppercase tracking-[.2em] text-[#c9a84c]">
-        Poem of the Day
+    <details className="mb-8 border border-[#2a2840] bg-[#0d0f1a] p-4">
+      <summary className="cursor-pointer">
+        <span className="block text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+          Poem of the Day
+        </span>
+        <span className="mt-2 block font-serif text-lg text-[#e4ddd0]">
+          {poem.title}
+        </span>
       </summary>
       <button
         type="button"
