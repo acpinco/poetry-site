@@ -13,5 +13,9 @@ public record AuthProperties(
         String sessionCookieName,
         boolean secureSessionCookie,
         String adminEmail,
-        String adminContactEmail) {
+        String adminContactEmail,
+        int magicLinkIpLimit,
+        int magicLinkGlobalLimit,
+        String turnstileSiteKey,
+        String turnstileSecretKey) {
 }

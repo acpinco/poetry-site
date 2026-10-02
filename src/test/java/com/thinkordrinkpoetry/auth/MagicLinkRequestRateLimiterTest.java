@@ -2,7 +2,9 @@ package com.thinkordrinkpoetry.auth;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -21,22 +23,41 @@ class MagicLinkRequestRateLimiterTest {
                     "poetry_session",
                     false,
                     "",
-                    "timberlinelab@gmail.com"));
+                    "timberlinelab@gmail.com",
+                    3,
+                    4,
+                    "",
+                    ""));
 
     @Test
-    void allowsTheConfiguredNumberOfRequestsPerEmailAndIp() {
-        assertDoesNotThrow(() -> rateLimiter.check("poet@example.com", "127.0.0.1"));
-        assertDoesNotThrow(() -> rateLimiter.check("poet@example.com", "127.0.0.1"));
-    }
-
-    @Test
-    void rejectsRequestsAfterTheConfiguredLimit() {
-        rateLimiter.check("poet@example.com", "127.0.0.1");
-        rateLimiter.check("poet@example.com", "127.0.0.1");
+    void rejectsAClientAfterItsLimitAcrossDifferentEmails() {
+        for (int request = 0; request < 3; request++) {
+            assertDoesNotThrow(() -> rateLimiter.checkClient("203.0.113.7"));
+        }
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> rateLimiter.check("poet@example.com", "127.0.0.1"));
+                () -> rateLimiter.checkClient("203.0.113.7"));
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatusCode());
+        assertDoesNotThrow(() -> rateLimiter.checkClient("198.51.100.4"));
+    }
+
+    @Test
+    void stopsAllowingAnEmailAfterItsLimitWithoutThrowing() {
+        assertTrue(rateLimiter.allowEmail("poet@example.com"));
+        assertTrue(rateLimiter.allowEmail("poet@example.com"));
+        assertFalse(rateLimiter.allowEmail("poet@example.com"));
+        assertTrue(rateLimiter.allowEmail("other@example.com"));
+    }
+
+    @Test
+    void rejectsEmailSiteWideAfterTheGlobalLimit() {
+        for (int email = 0; email < 4; email++) {
+            assertDoesNotThrow(rateLimiter::checkGlobal);
+        }
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, rateLimiter::checkGlobal);
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatusCode());
     }

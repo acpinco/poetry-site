@@ -3,6 +3,7 @@ import ravenLogo from "./imports/Raven_Logo.png";
 import Home from "./Home";
 import PoemEditor from "./PoemEditor";
 import ContactPage from "./ContactPage";
+import TurnstileWidget from "./TurnstileWidget";
 
 function FeatherDecor({ className }: { className?: string }) {
   return (
@@ -46,6 +47,9 @@ export default function App() {
     "loading" | "login" | "profile" | "poem-editor" | "contact"
   >("loading");
   const [existingProfile, setExistingProfile] = useState(false);
+  const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -125,19 +129,39 @@ export default function App() {
     event.preventDefault();
     setError("");
     setMessage("");
+    const signingUp = authMode === "sign-up";
+    if (signingUp && !turnstileToken) {
+      setError("Please complete the human check first.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const response = await fetch("/api/auth/magic-links", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const response = await fetch(
+        signingUp ? "/api/auth/sign-up" : "/api/auth/magic-links",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            signingUp ? { email, turnstileToken } : { email },
+          ),
+        },
+      );
+      if (response.status === 429)
+        throw new Error(
+          "Too many sign-in requests. Please wait a while and try again.",
+        );
+      if (signingUp && response.status === 400)
+        throw new Error(
+          "We could not verify that you are human. Please try again.",
+        );
       if (!response.ok)
         throw new Error(
           "We could not send a sign-in link. Please check the email address and try again.",
         );
       setMessage(
-        "Check your email for your sign-in link. It will open your profile form.",
+        signingUp
+          ? "Check your email for your sign-in link. It will open your profile form."
+          : "If an account exists for that email, a sign-in link is on its way.",
       );
     } catch (reason) {
       setError(
@@ -147,7 +171,15 @@ export default function App() {
       );
     } finally {
       setSubmitting(false);
+      // Turnstile tokens are single use; show a fresh challenge for any retry.
+      if (signingUp) setTurnstileKey((key) => key + 1);
     }
+  }
+
+  function switchAuthMode(mode: "sign-in" | "sign-up") {
+    setAuthMode(mode);
+    setError("");
+    setMessage("");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -249,9 +281,15 @@ export default function App() {
             ) : screen === "login" ? (
               <form onSubmit={requestMagicLink} className="space-y-5">
                 <div className="text-center">
-                  <h1 className="text-2xl text-[#e4ddd0]">Find your voice</h1>
+                  <h1 className="text-2xl text-[#e4ddd0]">
+                    {authMode === "sign-in"
+                      ? "Find your voice"
+                      : "Join the poets"}
+                  </h1>
                   <p className="mt-2 text-sm text-[#8b8992]">
-                    Enter your email and we’ll send you a sign-in link.
+                    {authMode === "sign-in"
+                      ? "Enter your account email and we’ll send you a sign-in link."
+                      : "Enter your email and we’ll send a link to create your account."}
                   </p>
                 </div>
                 <div>
@@ -273,6 +311,12 @@ export default function App() {
                     className={inputStyle("email")}
                   />
                 </div>
+                {authMode === "sign-up" && (
+                  <TurnstileWidget
+                    key={turnstileKey}
+                    onToken={setTurnstileToken}
+                  />
+                )}
                 {hasMagicLinkError && (
                   <p role="alert" className="text-sm text-red-300">
                     That sign-in link is invalid or has expired. Please request
@@ -313,6 +357,22 @@ export default function App() {
                 >
                   {submitting ? "Sending…" : "Take Flight"}
                 </button>
+                <p className="text-center text-sm text-[#8b8992]">
+                  {authMode === "sign-in" ? "New here? " : "Already a poet? "}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      switchAuthMode(
+                        authMode === "sign-in" ? "sign-up" : "sign-in",
+                      )
+                    }
+                    className="text-[#c9a84c] underline-offset-4 hover:underline"
+                  >
+                    {authMode === "sign-in"
+                      ? "Create an account"
+                      : "Sign in instead"}
+                  </button>
+                </p>
                 <button
                   type="button"
                   onClick={() => navigate("/home")}

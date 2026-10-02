@@ -23,7 +23,8 @@ class SecurityConfiguration {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/", "/poem-of-the-day").permitAll()
                         .requestMatchers("/poems/**", "/poets/**", "/sitemap.xml", "/robots.txt").permitAll()
-                        .requestMatchers("/api/auth/magic-links", "/api/auth/magic-links/**", "/api/auth/branding/**").permitAll()
+                        .requestMatchers("/api/auth/magic-links", "/api/auth/magic-links/**", "/api/auth/sign-up", "/api/auth/sign-up/**",
+                                "/api/auth/branding/**").permitAll()
                         .requestMatchers("/api/discovery/**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())

@@ -21,11 +21,13 @@ public class AuthService {
     private final UserSessionRepository sessions;
     private final MagicLinkMailer magicLinkMailer;
     private final PoetRepository poets;
+    private final TurnstileVerifier turnstileVerifier;
 
     AuthService(AuthProperties properties, EmailAddressNormalizer emailAddressNormalizer,
             SecretTokenService secretTokenService, MagicLinkRequestRateLimiter rateLimiter,
             EmailLoginTokenRepository loginTokens,
-            UserSessionRepository sessions, MagicLinkMailer magicLinkMailer, PoetRepository poets) {
+            UserSessionRepository sessions, MagicLinkMailer magicLinkMailer, PoetRepository poets,
+            TurnstileVerifier turnstileVerifier) {
         this.properties = properties;
         this.emailAddressNormalizer = emailAddressNormalizer;
         this.secretTokenService = secretTokenService;
@@ -34,13 +36,45 @@ public class AuthService {
         this.sessions = sessions;
         this.magicLinkMailer = magicLinkMailer;
         this.poets = poets;
+        this.turnstileVerifier = turnstileVerifier;
     }
 
+    /**
+     * Sign-in: only addresses that already belong to a poet receive email. Unknown addresses get the
+     * same response with nothing sent, so the form neither spams strangers nor reveals who has an
+     * account.
+     */
     @Transactional
     void requestMagicLink(String submittedEmail, String clientIp) {
         String email = emailAddressNormalizer.normalize(submittedEmail);
-        rateLimiter.check(email, clientIp);
+        rateLimiter.checkClient(clientIp);
         Optional<Poet> poet = poets.findByEmail(email);
+        if (poet.isEmpty()) {
+            return;
+        }
+        sendMagicLink(email, poet);
+    }
+
+    /**
+     * Sign-up: any address may receive a link, but only after a Turnstile challenge proves a person
+     * submitted the form. An address that already has an account simply receives a sign-in link.
+     */
+    @Transactional
+    void requestSignUp(String submittedEmail, String turnstileToken, String clientIp) {
+        String email = emailAddressNormalizer.normalize(submittedEmail);
+        rateLimiter.checkClient(clientIp);
+        if (!turnstileVerifier.verify(turnstileToken, clientIp)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "We could not verify that you are human. Please try again.");
+        }
+        sendMagicLink(email, poets.findByEmail(email));
+    }
+
+    private void sendMagicLink(String email, Optional<Poet> poet) {
+        if (!rateLimiter.allowEmail(email)) {
+            return;
+        }
+        rateLimiter.checkGlobal();
         if (poet.isPresent() && poet.get().getAccountStatus() == AccountStatus.LOCKED) {
             magicLinkMailer.sendAccountNotice(email, "Your Think or Drink Poetry account is locked",
                     "Your account has been locked. Contact " + properties.adminContactEmail() + " for help.");

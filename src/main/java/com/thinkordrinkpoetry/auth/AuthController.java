@@ -1,5 +1,6 @@
 package com.thinkordrinkpoetry.auth;
 
+import com.thinkordrinkpoetry.web.ClientIpResolver;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.servlet.http.Cookie;
@@ -26,16 +27,31 @@ import org.springframework.web.server.ResponseStatusException;
 class AuthController {
     private final AuthService authService;
     private final AuthProperties properties;
+    private final ClientIpResolver clientIps;
 
-    AuthController(AuthService authService, AuthProperties properties) {
+    AuthController(AuthService authService, AuthProperties properties, ClientIpResolver clientIps) {
         this.authService = authService;
         this.properties = properties;
+        this.clientIps = clientIps;
     }
 
+    /** Sign-in for existing poets. Always 204, whether or not the address has an account. */
     @PostMapping("/magic-links")
     ResponseEntity<Void> requestMagicLink(@Valid @RequestBody MagicLinkRequest request, HttpServletRequest servletRequest) {
-        authService.requestMagicLink(request.email(), servletRequest.getRemoteAddr());
+        authService.requestMagicLink(request.email(), clientIps.resolve(servletRequest));
         return ResponseEntity.noContent().build();
+    }
+
+    /** New-account sign-up, protected by a Cloudflare Turnstile challenge. */
+    @PostMapping("/sign-up")
+    ResponseEntity<Void> signUp(@Valid @RequestBody SignUpRequest request, HttpServletRequest servletRequest) {
+        authService.requestSignUp(request.email(), request.turnstileToken(), clientIps.resolve(servletRequest));
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/sign-up/config")
+    SignUpConfig signUpConfig() {
+        return new SignUpConfig(properties.turnstileSiteKey());
     }
 
     @GetMapping(value = "/magic-links/{token}", produces = MediaType.TEXT_HTML_VALUE)
@@ -129,6 +145,12 @@ class AuthController {
     }
 
     record MagicLinkRequest(@NotBlank String email) {
+    }
+
+    record SignUpRequest(@NotBlank String email, @NotBlank String turnstileToken) {
+    }
+
+    record SignUpConfig(String turnstileSiteKey) {
     }
 
     record LoginResponse(java.time.Instant expiresAt, boolean profileExists) {

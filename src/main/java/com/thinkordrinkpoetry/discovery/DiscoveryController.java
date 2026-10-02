@@ -1,5 +1,6 @@
 package com.thinkordrinkpoetry.discovery;
 
+import com.thinkordrinkpoetry.web.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -22,16 +23,19 @@ public class DiscoveryController {
     private final JdbcTemplate jdbc;
     private final PublicDiscoveryRateLimiter limiter;
     private final PoemOfTheDayService poemOfTheDay;
+    private final ClientIpResolver clientIps;
 
-    public DiscoveryController(JdbcTemplate jdbc, PublicDiscoveryRateLimiter limiter, PoemOfTheDayService poemOfTheDay) {
+    public DiscoveryController(JdbcTemplate jdbc, PublicDiscoveryRateLimiter limiter, PoemOfTheDayService poemOfTheDay,
+            ClientIpResolver clientIps) {
         this.jdbc = jdbc;
         this.limiter = limiter;
         this.poemOfTheDay = poemOfTheDay;
+        this.clientIps = clientIps;
     }
 
     @GetMapping("/home")
     public HomeResponse home(HttpServletRequest request) {
-        limiter.check(clientIp(request), false);
+        limiter.check(clientIps.resolve(request), false);
         PoetSummary poet = jdbc.query("""
                 select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, count(po.id)
                 from poet p join poem po on po.poet_id = p.id
@@ -47,7 +51,7 @@ public class DiscoveryController {
 
     @GetMapping("/poem-of-the-day")
     public PoemDetail poemOfTheDay(HttpServletRequest request) {
-        limiter.check(clientIp(request), false);
+        limiter.check(clientIps.resolve(request), false);
         UUID poemId = poemOfTheDay.poemIdForToday();
         if (poemId == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No poems are available yet.");
@@ -60,7 +64,7 @@ public class DiscoveryController {
             @RequestParam(defaultValue = "60") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             HttpServletRequest request) {
-        limiter.check(clientIp(request), false);
+        limiter.check(clientIps.resolve(request), false);
         List<RecentPoemSummary> results = jdbc.query("""
                 select po.id, po.poet_id, po.title, coalesce(nullif(p.pen_name, ''), p.full_name),
                        left(regexp_replace(po.poem, '\\s+', ' ', 'g'), 160), po.legacy_submitted_on, po.created_at
@@ -75,14 +79,14 @@ public class DiscoveryController {
 
     @GetMapping("/poets/{poetId}/poems")
     public PoetPoemsResponse poemsByPoet(@PathVariable UUID poetId, HttpServletRequest request) {
-        limiter.check(clientIp(request), false);
+        limiter.check(clientIps.resolve(request), false);
         PoetSummary poet = poet(poetId);
         return new PoetPoemsResponse(poet, poemsFor(poetId));
     }
 
     @GetMapping("/poets")
     public List<PoetSummary> poets(HttpServletRequest request) {
-        limiter.check(clientIp(request), false);
+        limiter.check(clientIps.resolve(request), false);
         return jdbc.query("""
                 select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, count(po.id)
                 from poet p join poem po on po.poet_id = p.id
@@ -92,11 +96,11 @@ public class DiscoveryController {
     }
 
     @GetMapping("/poems/{poemId}")
-    public PoemDetail poem(@PathVariable UUID poemId, HttpServletRequest request) { limiter.check(clientIp(request), false); return poem(poemId); }
+    public PoemDetail poem(@PathVariable UUID poemId, HttpServletRequest request) { limiter.check(clientIps.resolve(request), false); return poem(poemId); }
 
     @GetMapping("/search")
     public SearchResponse search(@RequestParam @Size(min = 2, max = 100) String q, HttpServletRequest request) {
-        limiter.check(clientIp(request), true);
+        limiter.check(clientIps.resolve(request), true);
         String pattern = "%" + q.trim().toLowerCase() + "%";
         List<PoetSummary> poets = jdbc.query("""
                 select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, count(po.id)
@@ -138,7 +142,6 @@ public class DiscoveryController {
             from poem po join poet p on p.id = po.poet_id where po.id = ?
             """, rs -> rs.next() ? new PoemDetail(UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getObject(7, java.time.LocalDate.class) == null ? rs.getTimestamp(8).toInstant() : rs.getObject(7, java.time.LocalDate.class).atStartOfDay().toInstant(java.time.ZoneOffset.UTC)) : null, id);
         if (result == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND); return result; }
-    private static String clientIp(HttpServletRequest request) { String forwarded = request.getHeader("X-Forwarded-For"); return forwarded == null || forwarded.isBlank() ? request.getRemoteAddr() : forwarded.split(",", 2)[0].trim(); }
 
     public record PoetSummary(UUID poetId, String displayName, String bio, int poemCount) {}
     public record PoemSummary(UUID poemId, String title, String excerpt, Instant createdAt) {}

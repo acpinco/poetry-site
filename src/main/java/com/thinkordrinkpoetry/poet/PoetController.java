@@ -60,7 +60,7 @@ public class PoetController {
                 null,
                 AccountStatus.ACTIVE,
                 role);
-        poet = poets.save(poet);
+        poet = poets.saveAndFlush(poet);
         authService.attachPoet(authenticatedUser.sessionId(), poet.getId());
         return response(poet);
     }
@@ -82,6 +82,7 @@ public class PoetController {
                 request.lastName.trim(),
                 optional(request.penName),
                 request.bio);
+        poets.flush();
         return response(poet);
     }
 

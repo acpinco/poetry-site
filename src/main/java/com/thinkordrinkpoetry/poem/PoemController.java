@@ -39,7 +39,7 @@ public class PoemController {
             @Valid @RequestBody PoemRequest request) {
         UUID poetId = poetId(user);
         Poem poem = new Poem(poetId, request.title().trim(), request.poem(), null);
-        return response(poems.save(poem));
+        return response(poems.saveAndFlush(poem));
     }
 
     @GetMapping
@@ -64,6 +64,7 @@ public class PoemController {
             @Valid @RequestBody PoemRequest request) {
         Poem poem = owned(poetId(user), poemId);
         poem.update(request.title().trim(), request.poem());
+        poems.flush();
         return response(poem);
     }
 

@@ -38,25 +38,23 @@ springdoc:
     enabled: ${SWAGGER_ENABLED:true}
 
 app:
+  # Cloudflare sets this to the real visitor IP; the app is only reachable through Cloudflare and Caddy.
+  client-ip-header: ${CLIENT_IP_HEADER:CF-Connecting-IP}
   mail:
     from: ${MAIL_FROM:Think or Drink Poetry <noreply@localhost>}
   contact:
     to: ${CONTACT_EMAIL:timberlinelab@gmail.com}
-  legacy-outreach:
-    enabled: false
-    mode: dry-run
-    campaign-id: legacy-poetry-1999-v1
-    confirmation: ${LEGACY_OUTREACH_CONFIRMATION:}
-    test-recipients: ${LEGACY_OUTREACH_TEST_RECIPIENTS:acpinco01@gmail.com,timberlinelab@gmail.com}
-    limit: ${LEGACY_OUTREACH_LIMIT:1}
-    resend: ${LEGACY_OUTREACH_RESEND:false}
-    reply-to: ${LEGACY_OUTREACH_REPLY_TO:timberlinelab@gmail.com}
-    public-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
   auth:
     magic-link-base-url: ${MAGIC_LINK_BASE_URL:http://localhost:8080}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
     magic-link-ttl: PT15M
+    # Sign-in email limits: per address per 15 minutes, per client IP per hour, and site-wide per hour.
     magic-link-request-limit: 5
+    magic-link-ip-limit: 10
+    magic-link-global-limit: 200
+    # Cloudflare Turnstile protects new-account sign-up. Without a secret key, sign-up is disabled.
+    turnstile-site-key: ${TURNSTILE_SITE_KEY:}
+    turnstile-secret-key: ${TURNSTILE_SECRET_KEY:}
     session-ttl: P7D
     session-cookie-name: poetry_session
     secure-session-cookie: ${SECURE_SESSION_COOKIE:false}

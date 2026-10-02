@@ -1,8 +1,13 @@
 package com.thinkordrinkpoetry.auth;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.thinkordrinkpoetry.PoetrySiteApplication;
 import jakarta.servlet.http.Cookie;
 import java.net.URI;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -35,7 +41,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 @SpringBootTest(
         classes = PoetrySiteApplication.class,
-        properties = "ADMIN_EMAIL=admin@example.com")
+        properties = {
+                "ADMIN_EMAIL=admin@example.com",
+                // Every MockMvc request comes from 127.0.0.1, so the per-IP limit would trip across tests.
+                "app.auth.magic-link-ip-limit=1000"})
 class AuthAndPoemFlowIntegrationTest {
 
     @Container
@@ -48,6 +57,9 @@ class AuthAndPoemFlowIntegrationTest {
     @MockitoBean
     private MagicLinkMailer magicLinkMailer;
 
+    @MockitoBean
+    private TurnstileVerifier turnstileVerifier;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -55,6 +67,61 @@ class AuthAndPoemFlowIntegrationTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(applicationContext)
                 .apply(springSecurity())
                 .build();
+        when(turnstileVerifier.verify(any(), any())).thenReturn(true);
+    }
+
+    @Test
+    void signInForAnUnknownEmailRespondsNormallyButSendsNothing() throws Exception {
+        mockMvc.perform(post("/api/auth/magic-links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"stranger@example.com"}
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(magicLinkMailer, never()).send(any(), any());
+    }
+
+    @Test
+    void signInForAnExistingPoetSendsALink() throws Exception {
+        createPoet(requestSession("returning@example.com"), "Returning", "Poet");
+
+        mockMvc.perform(post("/api/auth/magic-links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"returning@example.com"}
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(magicLinkMailer, times(2)).send(eq("returning@example.com"), any());
+    }
+
+    @Test
+    void signUpIsRejectedWhenTheTurnstileChallengeFails() throws Exception {
+        when(turnstileVerifier.verify(any(), any())).thenReturn(false);
+
+        mockMvc.perform(post("/api/auth/sign-up")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"bot@example.com","turnstileToken":"forged"}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(magicLinkMailer, never()).send(any(), any());
+    }
+
+    @Test
+    void repeatedRequestsForOneEmailStopSendingWithoutAnError() throws Exception {
+        for (int request = 0; request < 6; request++) {
+            mockMvc.perform(post("/api/auth/sign-up")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"flooded@example.com","turnstileToken":"token"}
+                                    """))
+                    .andExpect(status().isNoContent());
+        }
+
+        verify(magicLinkMailer, times(5)).send(eq("flooded@example.com"), any());
     }
 
     @Test
@@ -98,6 +165,48 @@ class AuthAndPoemFlowIntegrationTest {
                 .andExpect(status().isNoContent());
         mockMvc.perform(get("/api/poems/{poemId}", poemId).cookie(session))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void poemTimestampsAreReturnedAndOnlyUpdatedAtChangesOnEdit() throws Exception {
+        Cookie session = requestSession("timestamps@example.com");
+        mockMvc.perform(post("/api/poets")
+                        .cookie(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Emily","lastName":"Dickinson"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.fullName").value("Emily Dickinson"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.updatedAt").isNotEmpty());
+
+        MvcResult created = mockMvc.perform(post("/api/poems")
+                        .cookie(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Hope","poem":"Hope is the thing with feathers"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String createdJson = created.getResponse().getContentAsString();
+        String poemId = com.jayway.jsonpath.JsonPath.read(createdJson, "$.poemId");
+        Instant createdAt = Instant.parse(com.jayway.jsonpath.JsonPath.read(createdJson, "$.createdAt"));
+        Instant firstUpdatedAt = Instant.parse(com.jayway.jsonpath.JsonPath.read(createdJson, "$.updatedAt"));
+
+        MvcResult updated = mockMvc.perform(put("/api/poems/{poemId}", poemId)
+                        .cookie(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Hope","poem":"Hope is the thing with feathers, revised"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        String updatedJson = updated.getResponse().getContentAsString();
+
+        assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(updatedJson, "$.createdAt"))).isEqualTo(createdAt);
+        assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(updatedJson, "$.updatedAt")))
+                .isAfter(firstUpdatedAt);
     }
 
     @Test
@@ -193,10 +302,10 @@ class AuthAndPoemFlowIntegrationTest {
 
     private Cookie requestSession(String email) throws Exception {
         ArgumentCaptor<String> magicLink = ArgumentCaptor.forClass(String.class);
-        mockMvc.perform(post("/api/auth/magic-links")
+        mockMvc.perform(post("/api/auth/sign-up")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"%s"}
+                                {"email":"%s","turnstileToken":"token"}
                                 """.formatted(email)))
                 .andExpect(status().isNoContent());
         verify(magicLinkMailer).send(eq(email), magicLink.capture());
