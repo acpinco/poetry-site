@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { ApiError, getJson, isAbort, sendJson } from "../api";
 import BrowseSidebar from "../home/BrowseSidebar";
 import HomeHeader from "../home/HomeHeader";
+import { resolveListView, type ListKind } from "../home/listView";
 import {
   DesktopPoemReader,
   HomeFooter,
@@ -22,8 +23,6 @@ import { DESKTOP_QUERY, useMediaQuery } from "../useMediaQuery";
 
 const SEARCH_DELAY_MS = 700;
 const RECENT_PAGE_SIZE = 60;
-
-type ListKind = "mine" | "poet" | "all";
 
 /** The poems shown in the sidebar: the viewer's own, one poet's, or everyone's newest. */
 type Collection =
@@ -104,28 +103,15 @@ export default function HomePage() {
   const [searchParams] = useSearchParams();
   const poemParam = searchParams.get("poem");
   const poetParam = searchParams.get("poet");
-  const viewParam =
-    searchParams.get("view") ??
-    (searchParams.get("mine") === "1" ? "mine" : null);
   const viewer = session.status === "signed-in";
   const viewerPoetId = session.status === "signed-in" ? session.poetId : null;
   const viewerIsAdmin = session.status === "signed-in" && session.admin;
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
 
-  const listKind: ListKind | "resolve-poem" | "waiting" =
-    session.status === "loading"
-      ? "waiting"
-      : viewParam === "mine" && viewerPoetId
-        ? "mine"
-        : viewParam === "all"
-          ? "all"
-          : poetParam
-            ? "poet"
-            : poemParam
-              ? "resolve-poem"
-              : viewerPoetId
-                ? "mine"
-                : "all";
+  const listKind = resolveListView(searchParams, {
+    loading: session.status === "loading",
+    poetId: viewerPoetId,
+  });
   const listKey = listKind === "poet" ? `poet:${poetParam}` : listKind;
 
   const [collection, setCollection] = useState<Collection | null>(null);

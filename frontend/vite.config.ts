@@ -9,14 +9,18 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Mirror deploy/Caddyfile: the backend renders the landing page, poem,
+    // poet, and Poem of the Day pages; Vite serves only the React app.
     proxy: {
+      "^/$": apiProxyTarget,
+      "/poem-of-the-day": apiProxyTarget,
       "/api": apiProxyTarget,
       "/swagger-ui": apiProxyTarget,
       "/v3": apiProxyTarget,
       "/poems": apiProxyTarget,
       "/poets": apiProxyTarget,
       "/sitemap.xml": apiProxyTarget,
-      "/robots.txt": apiProxyTarget
-    }
-  }
+      "/robots.txt": apiProxyTarget,
+    },
+  },
 });
