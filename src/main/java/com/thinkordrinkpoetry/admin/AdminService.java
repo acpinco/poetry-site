@@ -4,7 +4,6 @@ import com.thinkordrinkpoetry.auth.AuthenticatedUser;
 import com.thinkordrinkpoetry.auth.UserSessionRepository;
 import com.thinkordrinkpoetry.poem.Poem;
 import com.thinkordrinkpoetry.poem.PoemRepository;
-import com.thinkordrinkpoetry.poet.AccountStatus;
 import com.thinkordrinkpoetry.poet.Poet;
 import com.thinkordrinkpoetry.poet.PoetRepository;
 import com.thinkordrinkpoetry.poet.PoetRole;
@@ -15,7 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Site administration. Every action is checked against an active admin and recorded in the audit log. */
+/**
+ * Site administration. Spring Security admits only active admins to /api/admin (see
+ * SecurityConfiguration); every change is recorded in the audit log.
+ */
 @Service
 class AdminService {
     private final PoetRepository poets;
@@ -91,14 +93,9 @@ class AdminService {
         poems.delete(poem);
     }
 
+    /** The admin performing an action, for the audit log and the self-change check. */
     private Poet requireAdmin(AuthenticatedUser user) {
-        if (user.poetId() == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        }
-        return poets.findById(user.poetId())
-                .filter(poet -> poet.getRole() == PoetRole.ADMIN)
-                .filter(poet -> poet.getAccountStatus() == AccountStatus.ACTIVE)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        return poets.findById(user.poetId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
     }
 
     /** Admins manage other poets; changing their own account here could lock them out. */

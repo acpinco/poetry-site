@@ -122,7 +122,7 @@ class AuthController {
 
     @GetMapping("/me")
     MeResponse me(@AuthenticationPrincipal AuthenticatedUser user) {
-        return new MeResponse(user.email(), user.poetId(), user.expiresAt(), authService.isActiveAdmin(user.poetId()));
+        return new MeResponse(user.email(), user.poetId(), user.expiresAt(), user.admin());
     }
 
     private ResponseCookie sessionCookie(String value, Duration maxAge) {

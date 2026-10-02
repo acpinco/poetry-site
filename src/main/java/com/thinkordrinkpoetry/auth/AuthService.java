@@ -128,7 +128,7 @@ public class AuthService {
                         poets.markSeen(session.getPoetId(), now, now.minus(LAST_SEEN_PRECISION));
                     }
                     return new AuthenticatedUser(session.getId(), session.getAuthenticatedEmail(),
-                            session.getPoetId(), session.getExpiresAt());
+                            session.getPoetId(), session.getExpiresAt(), isActiveAdmin(session.getPoetId()));
                 });
     }
 
@@ -138,8 +138,7 @@ public class AuthService {
                 .ifPresent(session -> session.revoke(Instant.now()));
     }
 
-    @Transactional(readOnly = true)
-    boolean isActiveAdmin(UUID poetId) {
+    private boolean isActiveAdmin(UUID poetId) {
         return poetId != null && poets.findById(poetId)
                 .filter(poet -> poet.getRole() == PoetRole.ADMIN)
                 .filter(poet -> poet.getAccountStatus() == AccountStatus.ACTIVE)

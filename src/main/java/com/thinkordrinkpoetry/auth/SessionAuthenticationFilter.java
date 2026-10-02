@@ -6,7 +6,10 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -27,13 +30,17 @@ class SessionAuthenticationFilter extends OncePerRequestFilter {
         String token = findCookie(request);
         if (token != null) {
             authService.authenticate(token).ifPresent(user -> SecurityContextHolder.getContext().setAuthentication(
-                    UsernamePasswordAuthenticationToken.authenticated(user, null, java.util.List.of())));
+                    UsernamePasswordAuthenticationToken.authenticated(user, null, authorities(user))));
         }
         try {
             filterChain.doFilter(request, response);
         } finally {
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private static List<GrantedAuthority> authorities(AuthenticatedUser user) {
+        return user.admin() ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN")) : List.of();
     }
 
     private String findCookie(HttpServletRequest request) {
