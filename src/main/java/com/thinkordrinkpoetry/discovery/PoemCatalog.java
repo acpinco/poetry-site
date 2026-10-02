@@ -171,8 +171,13 @@ public class PoemCatalog {
                 """, SITEMAP_ITEM);
     }
 
+    /** A LIKE pattern matching the query anywhere. % and _ in the query are matched literally. */
     private static String containsPattern(String query) {
-        return "%" + query.trim().toLowerCase(Locale.ROOT) + "%";
+        String literal = query.trim().toLowerCase(Locale.ROOT)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        return "%" + literal + "%";
     }
 
     private static Instant publishedAt(ResultSet rs) throws SQLException {

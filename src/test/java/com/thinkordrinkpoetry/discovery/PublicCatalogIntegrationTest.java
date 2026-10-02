@@ -139,6 +139,16 @@ class PublicCatalogIntegrationTest {
     }
 
     @Test
+    void searchTreatsLikeWildcardsAsPlainText() throws Exception {
+        mockMvc.perform(get("/api/discovery/search").param("q", "%%"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.poets", hasSize(0)))
+                .andExpect(jsonPath("$.poems", hasSize(0)));
+        mockMvc.perform(get("/api/discovery/search").param("q", "__"))
+                .andExpect(jsonPath("$.poems", hasSize(0)));
+    }
+
+    @Test
     void homePicksAPoetWithPoemsAndOpensOneOfTheirPoems() throws Exception {
         mockMvc.perform(get("/api/discovery/home"))
                 .andExpect(status().isOk())
