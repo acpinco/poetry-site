@@ -68,7 +68,8 @@ export default function HomeHeader({
   }
 
   function openSwagger() {
-    window.location.assign("/swagger-ui.html");
+    // A new tab keeps the reader where it was.
+    window.open("/swagger-ui.html", "_blank", "noopener,noreferrer");
   }
 
   function chooseDesktopPoet(poetId: string) {
