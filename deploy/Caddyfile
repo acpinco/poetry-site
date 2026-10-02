@@ -97,8 +97,14 @@
         file_server
     }
 
+    # Real files in /srv are served as-is. Anything else falls back to the
+    # React app's index.html, marked no-store: Cloudflare caches by file
+    # extension, so without it a missing /something.png would be cached at
+    # the edge as HTML and keep being served after the real route exists.
     handle {
         root * /srv
+        @fallback not file {path}
+        header @fallback Cache-Control "no-store"
         try_files {path} /index.html
         file_server
     }
