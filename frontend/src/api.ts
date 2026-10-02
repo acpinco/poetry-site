@@ -25,6 +25,27 @@ export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+/**
+ * Sends a JSON request (POST, PUT, DELETE), throwing an {@link ApiError} for any
+ * non-OK response. Resolves to the parsed body, or undefined for an empty one.
+ */
+export async function sendJson<T>(
+  url: string,
+  method: "POST" | "PUT" | "DELETE",
+  body?: unknown,
+): Promise<T | undefined> {
+  const response = await fetch(url, {
+    method,
+    headers:
+      body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok)
+    throw new ApiError(response.status, messageFor(response.status));
+  const text = await response.text();
+  return text ? (JSON.parse(text) as T) : undefined;
+}
+
 /** True for a fetch that was cancelled on purpose with an AbortController. */
 export function isAbort(reason: unknown) {
   return reason instanceof DOMException && reason.name === "AbortError";

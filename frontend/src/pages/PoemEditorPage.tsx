@@ -1,81 +1,59 @@
-import { FormEvent, useEffect, useState } from "react";
-import ravenLogo from "./imports/Raven_Logo.png";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import { ApiError, getJson, sendJson } from "../api";
+import ravenLogo from "../imports/Raven_Logo.png";
 
 type EditablePoem = { poemId: string; title: string; poem: string };
 
-export default function PoemEditor({
-  poemId,
-  onNavigate,
-}: {
-  poemId?: string;
-  onNavigate: (path: string) => void;
-}) {
+/** Writes a new poem, or edits one of the signed-in poet's poems. */
+export default function PoemEditorPage() {
+  const { poemId } = useParams();
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [poem, setPoem] = useState("");
   const [loading, setLoading] = useState(Boolean(poemId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const returnPath = poemId
-    ? `/home?mine=1&poem=${encodeURIComponent(poemId)}`
-    : "/home?mine=1";
+    ? `/home?view=mine&poem=${encodeURIComponent(poemId)}`
+    : "/home?view=mine";
 
   useEffect(() => {
     if (!poemId) return;
-    void loadPoem(poemId);
-  }, [poemId]);
-
-  async function loadPoem(id: string) {
-    try {
-      const response = await fetch(`/api/poems/${id}`, {
-        credentials: "include",
+    let cancelled = false;
+    getJson<EditablePoem>(`/api/poems/${poemId}`)
+      .then((value) => {
+        if (cancelled) return;
+        setTitle(value.title);
+        setPoem(value.poem);
+      })
+      .catch(() => {
+        if (!cancelled) setError("That poem could not be opened for editing.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-      if (response.status === 401 || response.status === 403) {
-        onNavigate("/sign-in");
-        return;
-      }
-      if (!response.ok)
-        throw new Error("That poem could not be opened for editing.");
-      const value = (await response.json()) as EditablePoem;
-      setTitle(value.title);
-      setPoem(value.poem);
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "That poem could not be opened for editing.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [poemId]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSaving(true);
     try {
-      const response = await fetch(
+      const saved = await sendJson<EditablePoem>(
         poemId ? `/api/poems/${poemId}` : "/api/poems",
-        {
-          method: poemId ? "PUT" : "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, poem }),
-        },
+        poemId ? "PUT" : "POST",
+        { title, poem },
       );
-      if (response.status === 401 || response.status === 403) {
-        onNavigate("/sign-in");
-        return;
-      }
-      if (!response.ok)
-        throw new Error("Your poem could not be saved. Please try again.");
-      const saved = (await response.json()) as EditablePoem;
-      onNavigate(`/home?mine=1&poem=${encodeURIComponent(saved.poemId)}`);
+      navigate(`/home?view=mine&poem=${encodeURIComponent(saved!.poemId)}`);
     } catch (reason) {
       setError(
-        reason instanceof Error
+        reason instanceof ApiError && reason.status === 429
           ? reason.message
-          : "Your poem could not be saved.",
+          : "Your poem could not be saved. Please try again.",
       );
     } finally {
       setSaving(false);
@@ -85,13 +63,12 @@ export default function PoemEditor({
   return (
     <main className="min-h-screen bg-[#080a0f] px-4 py-10 text-[#e4ddd0] sm:py-16">
       <div className="mx-auto max-w-3xl">
-        <button
-          type="button"
-          onClick={() => onNavigate(returnPath)}
-          className="mb-8 text-xs uppercase tracking-widest text-[#c9a84c]"
+        <Link
+          to={returnPath}
+          className="mb-8 inline-block text-xs uppercase tracking-widest text-[#c9a84c]"
         >
           ← Back to poems
-        </button>
+        </Link>
         <section className="border border-[#2a2840] bg-[#0e1018] p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
           <img
             src={ravenLogo}
@@ -152,13 +129,12 @@ export default function PoemEditor({
                 </p>
               )}
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => onNavigate(returnPath)}
-                  className="border border-[#3d3660] px-5 py-3 text-xs uppercase tracking-widest text-[#c8c0b0]"
+                <Link
+                  to={returnPath}
+                  className="border border-[#3d3660] px-5 py-3 text-center text-xs uppercase tracking-widest text-[#c8c0b0]"
                 >
                   Cancel
-                </button>
+                </Link>
                 <button
                   type="submit"
                   disabled={saving}

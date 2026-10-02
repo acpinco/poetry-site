@@ -15,7 +15,7 @@ type HomeHeaderProps = {
   displayedPoems: DisplayedPoem[];
   moreRecentPoems: boolean;
   onChoosePoem: (poemId: string) => Promise<void>;
-  onChooseRecentPoem: (poemId: string) => Promise<void>;
+  onSelectListPoem: (poemId: string) => Promise<void>;
   onChoosePoet: (poetId: string) => Promise<void>;
   onLoadMore: () => Promise<void>;
   onMyPoems: () => Promise<void>;
@@ -37,7 +37,7 @@ export default function HomeHeader({
   displayedPoems,
   moreRecentPoems,
   onChoosePoem,
-  onChooseRecentPoem,
+  onSelectListPoem,
   onChoosePoet,
   onLoadMore,
   onMyPoems,
@@ -150,9 +150,7 @@ export default function HomeHeader({
             displayedPoems={displayedPoems}
             moreRecentPoems={moreRecentPoems}
             onChoosePoem={(poemId) => {
-              void (showingAllPoems
-                ? onChooseRecentPoem(poemId)
-                : onChoosePoem(poemId));
+              void onSelectListPoem(poemId);
               closeMobilePanel();
             }}
             onChoosePoet={(poetId) => {

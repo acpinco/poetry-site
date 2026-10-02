@@ -1,11 +1,10 @@
-import { FormEvent, useState } from "react";
-import ravenLogo from "./imports/Raven_Logo.png";
+import { useState, type FormEvent } from "react";
+import { Link } from "react-router";
+import { ApiError, sendJson } from "../api";
+import ravenLogo from "../imports/Raven_Logo.png";
 
-export default function ContactPage({
-  onNavigate,
-}: {
-  onNavigate: (path: string) => void;
-}) {
+/** Lets a signed-in poet email the site admin. */
+export default function ContactPage() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -16,25 +15,14 @@ export default function ContactPage({
     setError("");
     setSending(true);
     try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-      if (response.status === 401 || response.status === 403) {
-        onNavigate("/sign-in");
-        return;
-      }
-      if (!response.ok)
-        throw new Error("Your message could not be sent. Please try again.");
+      await sendJson("/api/contact", "POST", { message });
       setSent(true);
       setMessage("");
     } catch (reason) {
       setError(
-        reason instanceof Error
+        reason instanceof ApiError && reason.status === 429
           ? reason.message
-          : "Your message could not be sent.",
+          : "Your message could not be sent. Please try again.",
       );
     } finally {
       setSending(false);
@@ -44,13 +32,12 @@ export default function ContactPage({
   return (
     <main className="min-h-screen bg-[#080a0f] px-4 py-10 text-[#e4ddd0] sm:py-16">
       <div className="mx-auto max-w-3xl">
-        <button
-          type="button"
-          onClick={() => onNavigate("/home?mine=1")}
-          className="mb-8 text-xs uppercase tracking-widest text-[#c9a84c]"
+        <Link
+          to="/home?view=mine"
+          className="mb-8 inline-block text-xs uppercase tracking-widest text-[#c9a84c]"
         >
           ← Back to my poems
-        </button>
+        </Link>
         <section className="border border-[#2a2840] bg-[#0e1018] p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
           <img
             src={ravenLogo}
@@ -73,13 +60,12 @@ export default function ContactPage({
               <p className="mt-2 text-sm text-[#8b8992]">
                 Thank you for reaching out.
               </p>
-              <button
-                type="button"
-                onClick={() => onNavigate("/home?mine=1")}
-                className="mt-8 border border-[#c9a84c] px-5 py-3 text-xs uppercase tracking-widest text-[#c9a84c]"
+              <Link
+                to="/home?view=mine"
+                className="mt-8 inline-block border border-[#c9a84c] px-5 py-3 text-xs uppercase tracking-widest text-[#c9a84c]"
               >
                 Back to my poems
-              </button>
+              </Link>
             </div>
           ) : (
             <form onSubmit={send} className="mx-auto mt-10 max-w-xl space-y-5">
@@ -114,13 +100,12 @@ export default function ContactPage({
                 </p>
               )}
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => onNavigate("/home?mine=1")}
-                  className="border border-[#3d3660] px-5 py-3 text-xs uppercase tracking-widest text-[#c8c0b0]"
+                <Link
+                  to="/home?view=mine"
+                  className="border border-[#3d3660] px-5 py-3 text-center text-xs uppercase tracking-widest text-[#c8c0b0]"
                 >
                   Cancel
-                </button>
+                </Link>
                 <button
                   type="submit"
                   disabled={sending}

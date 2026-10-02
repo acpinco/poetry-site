@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import ravenLogo from "./imports/Raven_Logo.png";
-import { formatDate, formatDateTime, timeAgo } from "./poetry";
+import { Link } from "react-router";
+import { ApiError, getJson } from "../api";
+import ravenLogo from "../imports/Raven_Logo.png";
+import { formatDate, formatDateTime, timeAgo } from "../poetry";
 
 type AdminPoet = {
   poetId: string;
@@ -50,33 +52,34 @@ function sortPoets(poets: AdminPoet[], { key, descending }: Sort) {
   });
 }
 
-export default function AdminPage({
-  onNavigate,
-}: {
-  onNavigate: (path: string) => void;
-}) {
-  const [poets, setPoets] = useState<AdminPoet[] | null>(null);
+/** Site admins' list of poets, sortable by when each was last seen. */
+export default function AdminPage() {
+  // loadedAt pins "now" for the relative times, keeping rendering pure.
+  const [loaded, setLoaded] = useState<{
+    poets: AdminPoet[];
+    loadedAt: Date;
+  } | null>(null);
   const [error, setError] = useState("");
   const [sort, setSort] = useState<Sort>({ key: "lastSeen", descending: true });
+  const poets = loaded?.poets ?? null;
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const response = await fetch("/api/admin/poets", {
-          credentials: "include",
-        });
-        if (response.status === 403)
-          throw new Error("This page is only available to site admins.");
-        if (!response.ok) throw new Error("The poet list could not be loaded.");
-        setPoets((await response.json()) as AdminPoet[]);
-      } catch (reason) {
+    let cancelled = false;
+    getJson<AdminPoet[]>("/api/admin/poets")
+      .then((value) => {
+        if (!cancelled) setLoaded({ poets: value, loadedAt: new Date() });
+      })
+      .catch((reason) => {
+        if (cancelled) return;
         setError(
-          reason instanceof Error
-            ? reason.message
+          reason instanceof ApiError && reason.status === 403
+            ? "This page is only available to site admins."
             : "The poet list could not be loaded.",
         );
-      }
-    })();
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function sortBy(key: SortKey) {
@@ -89,11 +92,14 @@ export default function AdminPage({
   }
 
   const sorted = poets ? sortPoets(poets, sort) : [];
-  const seenThisWeek = sorted.filter(
-    (poet) =>
-      poet.lastSeenAt &&
-      Date.now() - new Date(poet.lastSeenAt).getTime() < WEEK_MS,
-  ).length;
+  const seenThisWeek = loaded
+    ? sorted.filter(
+        (poet) =>
+          poet.lastSeenAt &&
+          loaded.loadedAt.getTime() - new Date(poet.lastSeenAt).getTime() <
+            WEEK_MS,
+      ).length
+    : 0;
 
   function header(key: SortKey, label: string) {
     const active = sort.key === key;
@@ -122,13 +128,12 @@ export default function AdminPage({
   return (
     <main className="min-h-screen bg-[#080a0f] px-4 py-10 text-[#e4ddd0] sm:py-16">
       <div className="mx-auto max-w-5xl">
-        <button
-          type="button"
-          onClick={() => onNavigate("/home")}
-          className="mb-8 text-xs uppercase tracking-widest text-[#c9a84c]"
+        <Link
+          to="/home"
+          className="mb-8 inline-block text-xs uppercase tracking-widest text-[#c9a84c]"
         >
           ← Back to poems
-        </button>
+        </Link>
         <section className="border border-[#2a2840] bg-[#0e1018] p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
           <img
             src={ravenLogo}
@@ -195,7 +200,7 @@ export default function AdminPage({
                               dateTime={poet.lastSeenAt}
                               title={formatDateTime(poet.lastSeenAt)}
                             >
-                              {timeAgo(poet.lastSeenAt)}
+                              {timeAgo(poet.lastSeenAt, loaded!.loadedAt)}
                             </time>
                           ) : (
                             <span className="text-[#8b8992]">Never</span>

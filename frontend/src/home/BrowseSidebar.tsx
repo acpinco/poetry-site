@@ -5,8 +5,7 @@ type BrowseSidebarProps = {
   activePoemId: string;
   displayedPoems: DisplayedPoem[];
   moreRecentPoems: boolean;
-  onChoosePoem: (poemId: string) => Promise<unknown>;
-  onChooseRecentPoem: (poemId: string) => Promise<unknown>;
+  onSelectListPoem: (poemId: string) => Promise<unknown>;
   onLoadMore: () => Promise<unknown>;
   onShowAllPoems: () => Promise<unknown>;
   poetName: string;
@@ -18,8 +17,7 @@ export default function BrowseSidebar({
   activePoemId,
   displayedPoems,
   moreRecentPoems,
-  onChoosePoem,
-  onChooseRecentPoem,
+  onSelectListPoem,
   onLoadMore,
   onShowAllPoems,
   poetName,
@@ -67,11 +65,7 @@ export default function BrowseSidebar({
             <button
               type="button"
               key={poem.poemId}
-              onClick={() =>
-                void (showingAllPoems
-                  ? onChooseRecentPoem(poem.poemId)
-                  : onChoosePoem(poem.poemId))
-              }
+              onClick={() => void onSelectListPoem(poem.poemId)}
               className={`block w-full border-b border-[#1e2235] px-4 py-3 text-left transition hover:bg-[#161a27] ${activePoemId === poem.poemId ? "border-l-2 border-l-[#c9a84c] bg-[#161a27]" : "border-l-2 border-l-transparent"}`}
             >
               <span className="block truncate font-serif text-sm text-[#e4ddd0]">

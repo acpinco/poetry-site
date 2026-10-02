@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 type Turnstile = {
   render: (
@@ -53,6 +53,8 @@ export default function TurnstileWidget({
 }) {
   const container = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
+  // Always calls the latest onToken without re-rendering the widget.
+  const reportToken = useEffectEvent((token: string | null) => onToken(token));
 
   useEffect(() => {
     let widgetId: string | null = null;
@@ -70,9 +72,9 @@ export default function TurnstileWidget({
         widgetId = turnstile.render(container.current, {
           sitekey: turnstileSiteKey,
           theme: "dark",
-          callback: (token) => onToken(token),
-          "expired-callback": () => onToken(null),
-          "error-callback": () => onToken(null),
+          callback: (token) => reportToken(token),
+          "expired-callback": () => reportToken(null),
+          "error-callback": () => reportToken(null),
         });
       } catch {
         if (!cancelled) setFailed(true);
@@ -83,9 +85,8 @@ export default function TurnstileWidget({
     return () => {
       cancelled = true;
       if (widgetId) window.turnstile?.remove(widgetId);
-      onToken(null);
+      reportToken(null);
     };
-    // Render once per mount; onToken is a stable state setter from the parent.
   }, []);
 
   return failed ? (
