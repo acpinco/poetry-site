@@ -1,6 +1,25 @@
 :80 {
     encode zstd gzip
 
+    # Security headers for every response. Spring Security already sends most of
+    # these for backend pages; Caddy serves the React app's files itself, so set
+    # them here once. "defer" applies them after the backend responds, replacing
+    # its copies instead of duplicating them.
+    #
+    # The Content-Security-Policy is deliberately narrow: it blocks framing,
+    # plugins, <base> hijacking, and stray form posts. It does not restrict
+    # scripts or styles, because Turnstile, Google Fonts, and anything Cloudflare
+    # injects would all need allow-listing first.
+    header {
+        defer
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    }
+
     handle /api/* {
         header X-Robots-Tag "noindex, nofollow"
         reverse_proxy app:8080 {
