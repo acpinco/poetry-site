@@ -55,6 +55,8 @@ export default function Home({
   const [recentOffset, setRecentOffset] = useState(0);
   const [moreRecentPoems, setMoreRecentPoems] = useState(false);
   const [showingAllPoems, setShowingAllPoems] = useState(false);
+  // The signed-in poet asked for their own poems and has none yet.
+  const [emptyCollection, setEmptyCollection] = useState(false);
   // error: nothing could be shown at all. notice: an action failed but the page still works.
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -129,7 +131,7 @@ export default function Home({
     };
   }
 
-  async function load(preferredMyPoemId?: string, forcePublicBrowse = false) {
+  async function load(preferredMyPoemId?: string) {
     try {
       const [dailyPoem, me] = await Promise.all([
         fetch("/api/discovery/poem-of-the-day"),
@@ -151,7 +153,7 @@ export default function Home({
         )
           return;
         // A signed-in poet should always return to their own collection.
-        if (session.poetId && !forcePublicBrowse) {
+        if (session.poetId) {
           await myPoems(preferredMyPoemId);
           return;
         }
@@ -174,6 +176,7 @@ export default function Home({
       if (!isLatest(navigation)) return;
       setData(value);
       setActive(value.selectedPoem);
+      setEmptyCollection(false);
       if (!me.ok) {
         setViewer(false);
         setViewerPoetId(null);
@@ -202,6 +205,7 @@ export default function Home({
     setData({ ...poetData, selectedPoem: poem });
     setActive(poem);
     setShowingAllPoems(false);
+    setEmptyCollection(false);
     closeSearch();
     return true;
   }
@@ -217,6 +221,7 @@ export default function Home({
     setData({ poet: value.poet, poems: value.poems, selectedPoem: poem });
     setActive(poem);
     setShowingAllPoems(false);
+    setEmptyCollection(false);
     closeSearch();
   }
 
@@ -233,7 +238,7 @@ export default function Home({
     ]);
     if (!isLatest(navigation)) return;
     if (!poems.length) {
-      await load(undefined, true);
+      setEmptyCollection(true);
       return;
     }
     const summaries = poems.map((poem) => ({
@@ -260,6 +265,7 @@ export default function Home({
     setData({ poet, poems: summaries, selectedPoem: detail });
     setActive(detail);
     setShowingAllPoems(false);
+    setEmptyCollection(false);
   }
 
   /** Lists the newest poems site-wide. Resolves false when there is nothing to show. */
@@ -279,6 +285,7 @@ export default function Home({
     setRecentOffset(poems.length);
     setMoreRecentPoems(value.hasMore);
     setShowingAllPoems(true);
+    setEmptyCollection(false);
     if (detail) {
       setData({
         poet: {
@@ -362,19 +369,95 @@ export default function Home({
         </div>
       </main>
     );
+  const displayedPoems: DisplayedPoem[] = showingAllPoems
+    ? recentPoems
+    : (data?.poems ?? []).map((poem) => ({
+        ...poem,
+        poetId: data!.poet.poetId,
+        poetDisplayName: data!.poet.displayName,
+      }));
+  const noticeBanner = notice && (
+    <div
+      role="alert"
+      className="flex shrink-0 items-center justify-between gap-3 border-b border-[#5a2a33] bg-[#24121a] px-4 py-2 text-sm text-red-200"
+    >
+      <span>{notice}</span>
+      <button
+        type="button"
+        onClick={() => setNotice("")}
+        className="shrink-0 text-xs uppercase tracking-wider text-red-100 hover:text-white"
+      >
+        Dismiss
+      </button>
+    </div>
+  );
+  const header = (
+    <HomeHeader
+      activePoemId={emptyCollection ? "" : (active?.poemId ?? "")}
+      activePoetId={emptyCollection ? "" : (data?.poet.poetId ?? "")}
+      directory={directory}
+      displayedPoems={emptyCollection ? [] : displayedPoems}
+      moreRecentPoems={moreRecentPoems}
+      onChoosePoem={onChoosePoem}
+      onChooseRecentPoem={onChooseRecentPoem}
+      onChoosePoet={onChoosePoet}
+      onLoadMore={onLoadMore}
+      onMyPoems={onMyPoems}
+      onNavigate={onNavigate}
+      onSearch={setQuery}
+      onShowAllPoems={onShowAllPoems}
+      onSignOut={signOut}
+      query={query}
+      results={results}
+      showingAllPoems={showingAllPoems && !emptyCollection}
+      viewer={viewer}
+      viewerIsAdmin={viewerIsAdmin}
+    />
+  );
+
+  if (emptyCollection)
+    return (
+      <main className="flex min-h-screen flex-col bg-[#080a0f] text-[#e4ddd0]">
+        {noticeBanner}
+        {header}
+        <section className="grid flex-1 place-items-center px-6 py-16 text-center">
+          <div className="max-w-md">
+            <p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+              My Poems
+            </p>
+            <h1 className="mt-3 font-serif text-3xl">
+              You haven’t added any poems yet
+            </h1>
+            <p className="mt-4 leading-relaxed text-[#8b8992]">
+              Your collection will appear here once you publish your first poem.
+            </p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => onNavigate("/my-poems/new")}
+                className="bg-[#c9a84c] px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#080a0f] hover:bg-[#e8c97a]"
+              >
+                Write your first poem
+              </button>
+              <button
+                type="button"
+                onClick={() => void onShowAllPoems()}
+                className="border border-[#3d3660] px-5 py-3 text-xs uppercase tracking-widest text-[#c8c0b0] hover:border-[#c9a84c] hover:text-[#e8c97a]"
+              >
+                Browse all poems
+              </button>
+            </div>
+          </div>
+        </section>
+        <HomeFooter onNavigate={onNavigate} viewer={viewer} />
+      </main>
+    );
   if (!data || !active)
     return (
       <main className="grid min-h-screen place-items-center bg-[#080a0f] text-[#8b8992]">
         Gathering poems…
       </main>
     );
-  const displayedPoems: DisplayedPoem[] = showingAllPoems
-    ? recentPoems
-    : data.poems.map((poem) => ({
-        ...poem,
-        poetId: data.poet.poetId,
-        poetDisplayName: data.poet.displayName,
-      }));
   const activePoemIndex = displayedPoems.findIndex(
     (poem) => poem.poemId === active.poemId,
   );
@@ -382,42 +465,8 @@ export default function Home({
   const hasNextPoem = activePoemIndex < displayedPoems.length - 1;
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[#080a0f] text-[#e4ddd0]">
-      {notice && (
-        <div
-          role="alert"
-          className="flex shrink-0 items-center justify-between gap-3 border-b border-[#5a2a33] bg-[#24121a] px-4 py-2 text-sm text-red-200"
-        >
-          <span>{notice}</span>
-          <button
-            type="button"
-            onClick={() => setNotice("")}
-            className="shrink-0 text-xs uppercase tracking-wider text-red-100 hover:text-white"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-      <HomeHeader
-        activePoemId={active.poemId}
-        activePoetId={data.poet.poetId}
-        directory={directory}
-        displayedPoems={displayedPoems}
-        moreRecentPoems={moreRecentPoems}
-        onChoosePoem={onChoosePoem}
-        onChooseRecentPoem={onChooseRecentPoem}
-        onChoosePoet={onChoosePoet}
-        onLoadMore={onLoadMore}
-        onMyPoems={onMyPoems}
-        onNavigate={onNavigate}
-        onSearch={setQuery}
-        onShowAllPoems={onShowAllPoems}
-        onSignOut={signOut}
-        query={query}
-        results={results}
-        showingAllPoems={showingAllPoems}
-        viewer={viewer}
-        viewerIsAdmin={viewerIsAdmin}
-      />
+      {noticeBanner}
+      {header}
 
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">
         <MobilePoemReader

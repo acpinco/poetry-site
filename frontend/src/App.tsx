@@ -52,6 +52,7 @@ export default function App() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
   const [email, setEmail] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [penName, setPenName] = useState("");
@@ -102,6 +103,7 @@ export default function App() {
         setScreen("login");
         return;
       }
+      setAccountEmail(((await session.json()) as { email: string }).email);
       const profile = await fetch("/api/poets/me", { credentials: "include" });
       if (profile.ok) {
         if (pathname === "/account/setup") {
@@ -412,6 +414,17 @@ export default function App() {
               </form>
             ) : (
               <form onSubmit={submit} className="space-y-5">
+                <div>
+                  <p className="block text-xs mb-2 tracking-wide text-[#8b8992]">
+                    Account Email
+                  </p>
+                  <p className="break-all rounded border border-[#2a2840] bg-[#0b0d14] px-4 py-3 text-sm text-[#c8c0b0]">
+                    {accountEmail}
+                  </p>
+                  <p className="text-xs mt-1.5 italic text-[#4a4857]">
+                    Sign-in links for this profile are sent here.
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field
                     label="First Name"
