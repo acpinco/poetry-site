@@ -211,6 +211,10 @@ export default function App() {
           throw new Error(
             "Please sign in with a magic link before creating your profile.",
           );
+        if (response.status === 409)
+          throw new Error(
+            "That pen name is already taken. Please choose another.",
+          );
         throw new Error("We could not save your profile. Please try again.");
       }
       navigate(existingProfile ? "/home?mine=1" : "/home");

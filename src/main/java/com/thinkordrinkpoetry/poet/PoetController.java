@@ -48,6 +48,10 @@ public class PoetController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A poet profile already exists.");
         }
 
+        String penName = optional(request.penName);
+        if (penName != null && poets.penNameTaken(penName)) {
+            throw penNameTaken();
+        }
         PoetRole role = authenticatedUser.email().equalsIgnoreCase(properties.adminEmail())
                 ? PoetRole.ADMIN
                 : PoetRole.USER;
@@ -55,7 +59,7 @@ public class PoetController {
                 authenticatedUser.email(),
                 request.firstName.trim(),
                 request.lastName.trim(),
-                optional(request.penName),
+                penName,
                 request.bio,
                 null,
                 AccountStatus.ACTIVE,
@@ -77,10 +81,14 @@ public class PoetController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody PoetRequest request) {
         Poet poet = current(user);
+        String penName = optional(request.penName);
+        if (penName != null && poets.penNameTakenByAnotherPoet(penName, poet.getId())) {
+            throw penNameTaken();
+        }
         poet.updateProfile(
                 request.firstName.trim(),
                 request.lastName.trim(),
-                optional(request.penName),
+                penName,
                 request.bio);
         poets.flush();
         return response(poet);
@@ -107,6 +115,10 @@ public class PoetController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         return user;
+    }
+
+    private static ResponseStatusException penNameTaken() {
+        return new ResponseStatusException(HttpStatus.CONFLICT, "That pen name is already taken.");
     }
 
     private static String optional(String value) {

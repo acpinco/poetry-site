@@ -231,6 +231,44 @@ class AuthAndPoemFlowIntegrationTest {
     }
 
     @Test
+    void aPenNameCanOnlyBelongToOnePoetRegardlessOfCase() throws Exception {
+        Cookie first = requestSession("first-pen@example.com");
+        mockMvc.perform(post("/api/poets")
+                        .cookie(first)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Ann","lastName":"One","penName":"Night Owl"}
+                                """))
+                .andExpect(status().isCreated());
+
+        Cookie second = requestSession("second-pen@example.com");
+        mockMvc.perform(post("/api/poets")
+                        .cookie(second)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Bo","lastName":"Two","penName":"night owl"}
+                                """))
+                .andExpect(status().isConflict());
+        createPoet(second, "Bo", "Two");
+        mockMvc.perform(put("/api/poets/me")
+                        .cookie(second)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Bo","lastName":"Two","penName":"NIGHT OWL"}
+                                """))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(put("/api/poets/me")
+                        .cookie(first)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Ann","lastName":"One","penName":"night owl"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.penName").value("night owl"));
+    }
+
+    @Test
     void unauthenticatedUsersCannotWritePoems() throws Exception {
         mockMvc.perform(post("/api/poems")
                         .contentType(MediaType.APPLICATION_JSON)

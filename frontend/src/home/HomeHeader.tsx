@@ -14,13 +14,13 @@ type HomeHeaderProps = {
   directory: Poet[] | null;
   displayedPoems: DisplayedPoem[];
   moreRecentPoems: boolean;
-  onChoosePoem: (poemId: string) => Promise<boolean>;
+  onChoosePoem: (poemId: string) => Promise<void>;
   onChooseRecentPoem: (poemId: string) => Promise<void>;
   onChoosePoet: (poetId: string) => Promise<void>;
   onLoadMore: () => Promise<void>;
   onMyPoems: () => Promise<void>;
   onNavigate: (path: string) => void;
-  onSearch: (query: string) => Promise<void>;
+  onSearch: (query: string) => void;
   onShowAllPoems: () => Promise<void>;
   onSignOut: () => Promise<void>;
   query: string;
@@ -122,7 +122,7 @@ export default function HomeHeader({
           onFocus={() => setMobilePanel("search")}
           onChange={(event) => {
             setMobilePanel("search");
-            void onSearch(event.target.value);
+            onSearch(event.target.value);
           }}
           placeholder="Search poets or poems…"
           className="mt-3 w-full border border-[#2a2840] bg-[#080a0f] px-3 py-2 text-sm outline-none focus:border-[#c9a84c]"
@@ -195,7 +195,7 @@ export default function HomeHeader({
             onChoosePoem={chooseDesktopPoem}
             onChoosePoet={chooseDesktopPoet}
             onFocusChange={setDesktopSearchFocused}
-            onSearch={(value) => void onSearch(value)}
+            onSearch={onSearch}
             query={query}
             results={results}
             showingDirectory={showingDirectory}
