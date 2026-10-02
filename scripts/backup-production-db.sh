@@ -3,12 +3,12 @@
 set -Eeuo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-config_file="${POETRY_BACKUP_CONFIG_FILE:-/etc/poetry-site-backup.env}"
+config_file="${POETRY_BACKUP_CONFIG_FILE:-$project_dir/.env.backup}"
 
 [[ "${EUID}" -eq 0 ]] || { echo "Run this production backup helper with sudo." >&2; exit 1; }
-[[ -f "$config_file" ]] || { echo "Missing backup configuration: $config_file" >&2; exit 1; }
+[[ -f "$config_file" ]] || { echo "Missing backup configuration: $config_file (copy .env.backup.example)" >&2; exit 1; }
 
-# shellcheck source=/etc/poetry-site-backup.env
+# shellcheck source=../.env.backup.example
 source "$config_file"
 
 : "${BACKUP_OWNER:?BACKUP_OWNER is required}"

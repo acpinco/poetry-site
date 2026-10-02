@@ -187,9 +187,9 @@ sudo systemctl restart cloudflared
 POSTGRESQL BACKUPS
 ------------------
 
-Description: Create the server-only backup configuration from the template. It already holds the right owner and SSD directory for this server, plus the optional USB_BACKUP_MOUNT for the second copy.
+Description: Create the backup configuration from the template in the project directory. It already holds the right owner and SSD directory for this server, plus the optional USB_BACKUP_MOUNT for the second copy. Git ignores .env.backup.
 
-sudo install -m 600 -o root -g root deploy/poetry-site-backup.env.example /etc/poetry-site-backup.env
+cp .env.backup.example .env.backup
 
 ---------
 
