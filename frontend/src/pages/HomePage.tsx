@@ -18,6 +18,7 @@ import type {
   SearchResults,
 } from "../home/types";
 import { useSession } from "../session";
+import { DESKTOP_QUERY, useMediaQuery } from "../useMediaQuery";
 
 const SEARCH_DELAY_MS = 700;
 const RECENT_PAGE_SIZE = 60;
@@ -109,6 +110,7 @@ export default function HomePage() {
   const viewer = session.status === "signed-in";
   const viewerPoetId = session.status === "signed-in" ? session.poetId : null;
   const viewerIsAdmin = session.status === "signed-in" && session.admin;
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
 
   const listKind: ListKind | "resolve-poem" | "waiting" =
     session.status === "loading"
@@ -462,56 +464,58 @@ export default function HomePage() {
       {noticeBanner}
       {header}
 
-      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
-        <MobilePoemReader
-          active={active}
-          mobilePoemPanel={mobilePoemPanel}
-          onChoosePoem={openPoem}
-          onDelete={deleteActivePoem}
-          onNextPoem={() => chooseAdjacentPoem(1)}
-          onNavigate={navigate}
-          onPreviousPoem={() => chooseAdjacentPoem(-1)}
-          hasNextPoem={hasNextPoem}
-          hasPreviousPoem={hasPreviousPoem}
-          poemOfTheDay={poemOfTheDay}
-          viewerPoetId={viewerPoetId}
-        />
-        <HomeFooter compact onNavigate={navigate} viewer={viewer} />
-      </div>
-
-      <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-        <div className="flex min-h-0 flex-1">
-          <BrowseSidebar
-            activePoemId={active.poemId}
-            displayedPoems={displayedPoems}
-            moreRecentPoems={collection.kind === "all" && collection.hasMore}
-            onSelectListPoem={selectListPoem}
-            onLoadMore={loadMore}
-            onShowAllPoems={showAllPoems}
-            poetName={
-              collection.kind === "all"
-                ? "All Poems"
-                : collection.poet.displayName
-            }
-            poetPoemCount={
-              collection.kind === "all"
-                ? displayedPoems.length
-                : collection.poet.poemCount
-            }
-            showingAllPoems={showingAllPoems}
-          />
-          <DesktopPoemReader
+      {isDesktop ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1">
+            <BrowseSidebar
+              activePoemId={active.poemId}
+              displayedPoems={displayedPoems}
+              moreRecentPoems={collection.kind === "all" && collection.hasMore}
+              onSelectListPoem={selectListPoem}
+              onLoadMore={loadMore}
+              onShowAllPoems={showAllPoems}
+              poetName={
+                collection.kind === "all"
+                  ? "All Poems"
+                  : collection.poet.displayName
+              }
+              poetPoemCount={
+                collection.kind === "all"
+                  ? displayedPoems.length
+                  : collection.poet.poemCount
+              }
+              showingAllPoems={showingAllPoems}
+            />
+            <DesktopPoemReader
+              active={active}
+              onChoosePoem={openPoem}
+              onDelete={deleteActivePoem}
+              onNavigate={navigate}
+              poemOfTheDay={poemOfTheDay}
+              poemPanel={poemPanel}
+              viewerPoetId={viewerPoetId}
+            />
+          </div>
+          <HomeFooter onNavigate={navigate} viewer={viewer} />
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <MobilePoemReader
             active={active}
+            mobilePoemPanel={mobilePoemPanel}
             onChoosePoem={openPoem}
             onDelete={deleteActivePoem}
+            onNextPoem={() => chooseAdjacentPoem(1)}
             onNavigate={navigate}
+            onPreviousPoem={() => chooseAdjacentPoem(-1)}
+            hasNextPoem={hasNextPoem}
+            hasPreviousPoem={hasPreviousPoem}
             poemOfTheDay={poemOfTheDay}
-            poemPanel={poemPanel}
             viewerPoetId={viewerPoetId}
           />
+          <HomeFooter compact onNavigate={navigate} viewer={viewer} />
         </div>
-        <HomeFooter onNavigate={navigate} viewer={viewer} />
-      </div>
+      )}
     </main>
   );
 }

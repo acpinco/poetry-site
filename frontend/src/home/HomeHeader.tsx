@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ravenLogo from "../imports/Raven_Logo.png";
 import { formatDate } from "../poetry";
+import { DESKTOP_QUERY, useMediaQuery } from "../useMediaQuery";
 import type { DisplayedPoem, MobilePanel, Poet, SearchResults } from "./types";
 
 const headerButton =
@@ -51,6 +52,7 @@ export default function HomeHeader({
   viewer,
   viewerIsAdmin,
 }: HomeHeaderProps) {
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>(null);
   const [mobileBrowseView, setMobileBrowseView] = useState<"poets" | "poems">(
     "poets",
@@ -79,9 +81,9 @@ export default function HomeHeader({
     void onChoosePoem(poemId);
   }
 
-  return (
-    <>
-      <header className="z-30 shrink-0 border-b border-line-soft bg-panel/93 px-4 py-3 backdrop-blur lg:hidden">
+  if (!isDesktop)
+    return (
+      <header className="z-30 shrink-0 border-b border-line-soft bg-panel/93 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-2">
           <img
             src={ravenLogo}
@@ -128,19 +130,22 @@ export default function HomeHeader({
           className="mt-3 w-full border border-line bg-night px-3 py-2 text-sm outline-none focus:border-gold"
         />
         {mobilePanel === "search" && (
-          <MobileSearchResults
-            directory={directory}
-            query={query}
-            results={results}
-            onChoosePoet={(poetId) => {
-              void onChoosePoet(poetId);
-              closeMobilePanel();
-            }}
-            onChoosePoem={(poemId) => {
-              void onChoosePoem(poemId);
-              closeMobilePanel();
-            }}
-          />
+          <div className="mt-2 max-h-60 overflow-y-auto border border-line bg-raised">
+            <SearchMatches
+              compact={false}
+              directory={directory}
+              results={results}
+              showDirectory={query.trim().length < 2}
+              onChoosePoet={(poetId) => {
+                void onChoosePoet(poetId);
+                closeMobilePanel();
+              }}
+              onChoosePoem={(poemId) => {
+                void onChoosePoem(poemId);
+                closeMobilePanel();
+              }}
+            />
+          </div>
         )}
         {mobilePanel === "browse" && (
           <MobileBrowsePanel
@@ -180,127 +185,125 @@ export default function HomeHeader({
           />
         )}
       </header>
+    );
 
-      <header className="sticky top-0 z-20 hidden flex-wrap items-center justify-between gap-4 border-b border-line-soft bg-panel/93 px-4 py-3 backdrop-blur sm:px-7 lg:flex">
-        <div className="flex min-w-0 items-center gap-3">
-          <img
-            src={ravenLogo}
-            alt="Think or Drink Poetry"
-            className="h-10 shrink-0 object-contain"
-          />
-          <DesktopSearch
-            directory={directory}
-            onChoosePoem={chooseDesktopPoem}
-            onChoosePoet={chooseDesktopPoet}
-            onFocusChange={setDesktopSearchFocused}
-            onSearch={onSearch}
-            query={query}
-            results={results}
-            showingDirectory={showingDirectory}
-            showingResults={Boolean(showingResults)}
-          />
-        </div>
-        {viewer ? (
-          <div className="ml-auto flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => void onMyPoems()}
-              className={headerButton}
-            >
-              My Poems
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate("/my-poems/new")}
-              className={newPoemButton}
-            >
-              + New Poem
-            </button>
-            <DesktopAccountMenu
-              open={desktopMenuOpen}
-              onToggle={() => setDesktopMenuOpen((open) => !open)}
-              onNavigate={(path) => {
-                setDesktopMenuOpen(false);
-                onNavigate(path);
-              }}
-              onOpenSwagger={openSwagger}
-              onSignOut={() => void onSignOut()}
-              viewerIsAdmin={viewerIsAdmin}
-            />
-          </div>
-        ) : (
+  return (
+    <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 border-b border-line-soft bg-panel/93 px-4 py-3 backdrop-blur sm:px-7">
+      <div className="flex min-w-0 items-center gap-3">
+        <img
+          src={ravenLogo}
+          alt="Think or Drink Poetry"
+          className="h-10 shrink-0 object-contain"
+        />
+        <DesktopSearch
+          directory={directory}
+          onChoosePoem={chooseDesktopPoem}
+          onChoosePoet={chooseDesktopPoet}
+          onFocusChange={setDesktopSearchFocused}
+          onSearch={onSearch}
+          query={query}
+          results={results}
+          showingDirectory={showingDirectory}
+          showingResults={Boolean(showingResults)}
+        />
+      </div>
+      {viewer ? (
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
           <button
             type="button"
-            onClick={() => onNavigate("/sign-in")}
+            onClick={() => void onMyPoems()}
             className={headerButton}
           >
-            Sign In
+            My Poems
           </button>
-        )}
-      </header>
-    </>
+          <button
+            type="button"
+            onClick={() => onNavigate("/my-poems/new")}
+            className={newPoemButton}
+          >
+            + New Poem
+          </button>
+          <DesktopAccountMenu
+            open={desktopMenuOpen}
+            onToggle={() => setDesktopMenuOpen((open) => !open)}
+            onNavigate={(path) => {
+              setDesktopMenuOpen(false);
+              onNavigate(path);
+            }}
+            onOpenSwagger={openSwagger}
+            onSignOut={() => void onSignOut()}
+            viewerIsAdmin={viewerIsAdmin}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onNavigate("/sign-in")}
+          className={headerButton}
+        >
+          Sign In
+        </button>
+      )}
+    </header>
   );
 }
 
-function MobileSearchResults({
+/**
+ * The poet directory (before a search) or search matches, as a list of buttons.
+ * Mobile uses roomier rows than the desktop dropdown.
+ */
+function SearchMatches({
+  compact,
   directory,
-  query,
   results,
+  showDirectory,
   onChoosePoet,
   onChoosePoem,
 }: {
+  compact: boolean;
   directory: Poet[] | null;
-  query: string;
   results: SearchResults | null;
+  showDirectory: boolean;
   onChoosePoet: (poetId: string) => void;
   onChoosePoem: (poemId: string) => void;
 }) {
-  if (query.trim().length < 2) {
+  const item = `block w-full border-b border-line px-3 text-left ${compact ? "py-2 text-xs" : "py-3 text-sm"}`;
+  const detail = compact ? "text-muted" : "text-xs text-muted";
+  const poetButton = (poet: Poet) => (
+    <button
+      key={poet.poetId}
+      type="button"
+      onClick={() => onChoosePoet(poet.poetId)}
+      className={item}
+    >
+      {poet.displayName}{" "}
+      <span className={detail}>· {poet.poemCount} poems</span>
+    </button>
+  );
+
+  if (showDirectory)
     return (
-      <div className="mt-2 max-h-60 overflow-y-auto border border-line bg-raised">
+      <>
         <p className="border-b border-line px-3 py-2 text-[10px] uppercase tracking-widest text-muted">
           All poets
         </p>
-        {directory?.map((poet) => (
-          <button
-            key={poet.poetId}
-            type="button"
-            onClick={() => onChoosePoet(poet.poetId)}
-            className="block w-full border-b border-line px-3 py-3 text-left text-sm"
-          >
-            {poet.displayName}{" "}
-            <span className="text-xs text-muted">· {poet.poemCount} poems</span>
-          </button>
-        ))}
-      </div>
+        {directory?.map(poetButton)}
+      </>
     );
-  }
-
   return (
-    <div className="mt-2 max-h-60 overflow-y-auto border border-line bg-raised">
-      {results?.poets.map((poet) => (
-        <button
-          key={poet.poetId}
-          type="button"
-          onClick={() => onChoosePoet(poet.poetId)}
-          className="block w-full border-b border-line px-3 py-3 text-left text-sm"
-        >
-          {poet.displayName}{" "}
-          <span className="text-xs text-muted">· {poet.poemCount} poems</span>
-        </button>
-      ))}
+    <>
+      {results?.poets.map(poetButton)}
       {results?.poems.map((poem) => (
         <button
           key={poem.poemId}
           type="button"
           onClick={() => onChoosePoem(poem.poemId)}
-          className="block w-full border-b border-line px-3 py-3 text-left text-sm"
+          className={item}
         >
-          {poem.title}{" "}
-          <span className="text-xs text-muted">by {poem.poetDisplayName}</span>
+          {poem.title} <span className={detail}>by {poem.poetDisplayName}</span>
         </button>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -441,50 +444,14 @@ function DesktopSearch({
       />
       {(showingDirectory || showingResults) && (
         <div className="absolute z-30 mt-1 max-h-80 w-full overflow-auto border border-line bg-raised">
-          {showingDirectory && (
-            <>
-              <p className="border-b border-line px-3 py-2 text-[10px] uppercase tracking-widest text-muted">
-                All poets
-              </p>
-              {directory?.map((poet) => (
-                <button
-                  key={poet.poetId}
-                  type="button"
-                  onClick={() => onChoosePoet(poet.poetId)}
-                  className="block w-full border-b border-line px-3 py-2 text-left text-xs"
-                >
-                  {poet.displayName}{" "}
-                  <span className="text-muted">· {poet.poemCount} poems</span>
-                </button>
-              ))}
-            </>
-          )}
-          {showingResults && results && (
-            <>
-              {results.poets.map((poet) => (
-                <button
-                  key={poet.poetId}
-                  type="button"
-                  onClick={() => onChoosePoet(poet.poetId)}
-                  className="block w-full border-b border-line px-3 py-2 text-left text-xs"
-                >
-                  {poet.displayName}{" "}
-                  <span className="text-muted">· {poet.poemCount} poems</span>
-                </button>
-              ))}
-              {results.poems.map((poem) => (
-                <button
-                  key={poem.poemId}
-                  type="button"
-                  onClick={() => onChoosePoem(poem.poemId)}
-                  className="block w-full border-b border-line px-3 py-2 text-left text-xs"
-                >
-                  {poem.title}{" "}
-                  <span className="text-muted">by {poem.poetDisplayName}</span>
-                </button>
-              ))}
-            </>
-          )}
+          <SearchMatches
+            compact
+            directory={directory}
+            results={showingResults ? results : null}
+            showDirectory={showingDirectory}
+            onChoosePoet={onChoosePoet}
+            onChoosePoem={onChoosePoem}
+          />
         </div>
       )}
     </div>
