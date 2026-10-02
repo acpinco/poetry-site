@@ -79,10 +79,10 @@ export default function SignInPage() {
     <AuthCard>
       <form onSubmit={requestLink} className="space-y-5">
         <div className="text-center">
-          <h1 className="text-2xl text-[#e4ddd0]">
+          <h1 className="text-2xl text-cream">
             {mode === "sign-in" ? "Find your voice" : "Join the poets"}
           </h1>
-          <p className="mt-2 text-sm text-[#8b8992]">
+          <p className="mt-2 text-sm text-muted">
             {mode === "sign-in"
               ? "Enter your account email and we’ll send you a sign-in link."
               : "Enter your email and we’ll send a link to create your account."}
@@ -90,7 +90,7 @@ export default function SignInPage() {
         </div>
         <div>
           <label htmlFor="email" className={authLabelClass}>
-            Email Address <span className="text-[#c9a84c]">*</span>
+            Email Address <span className="text-gold">*</span>
           </label>
           <input
             id="email"
@@ -117,17 +117,17 @@ export default function SignInPage() {
           </p>
         )}
         {message && (
-          <p role="status" className="text-sm text-[#e8c97a]">
+          <p role="status" className="text-sm text-gold-light">
             {message}
           </p>
         )}
         {message && mode === "sign-in" && (
-          <p className="text-sm text-[#8b8992]">
+          <p className="text-sm text-muted">
             No email after a minute? Check your spam folder, or you may need to{" "}
             <button
               type="button"
               onClick={() => switchMode("sign-up")}
-              className="text-[#c9a84c] underline-offset-4 hover:underline"
+              className="text-gold underline-offset-4 hover:underline"
             >
               create an account
             </button>{" "}
@@ -136,22 +136,25 @@ export default function SignInPage() {
         )}
         <AuthDivider />
         <AuthSubmitButton busy={submitting} busyLabel="Sending…" />
-        <p className="text-center text-sm text-[#8b8992]">
+        <p className="text-center text-sm text-muted">
           {mode === "sign-in" ? "New here? " : "Already a poet? "}
           <button
             type="button"
             onClick={() =>
               switchMode(mode === "sign-in" ? "sign-up" : "sign-in")
             }
-            className="text-[#c9a84c] underline-offset-4 hover:underline"
+            className="text-gold underline-offset-4 hover:underline"
           >
             {mode === "sign-in" ? "Create an account" : "Sign in instead"}
           </button>
         </p>
         <Link
           to="/home"
-          className="block w-full py-3 text-center text-sm tracking-widest uppercase text-[#c9a84c]"
-          style={{ letterSpacing: ".14em", border: "1px solid #3d3660" }}
+          className="block w-full py-3 text-center text-sm tracking-widest uppercase text-gold"
+          style={{
+            letterSpacing: ".14em",
+            border: "1px solid var(--color-line-strong)",
+          }}
         >
           Show Me What You Got
         </Link>

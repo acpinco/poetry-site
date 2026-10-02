@@ -344,13 +344,13 @@ export default function HomePage() {
 
   if (!collection && notice)
     return (
-      <main className="grid min-h-screen place-items-center bg-[#080a0f] px-4 text-center text-[#e4ddd0]">
+      <main className="grid min-h-screen place-items-center bg-night px-4 text-center text-cream">
         <div>
           <p role="alert">{notice}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-6 border border-[#c9a84c] px-5 py-3 text-xs uppercase tracking-widest text-[#c9a84c] hover:text-[#e8c97a]"
+            className="mt-6 border border-gold px-5 py-3 text-xs uppercase tracking-widest text-gold hover:text-gold-light"
           >
             Try again
           </button>
@@ -365,7 +365,7 @@ export default function HomePage() {
   const noticeBanner = notice && (
     <div
       role="alert"
-      className="flex shrink-0 items-center justify-between gap-3 border-b border-[#5a2a33] bg-[#24121a] px-4 py-2 text-sm text-red-200"
+      className="flex shrink-0 items-center justify-between gap-3 border-b border-danger-line bg-danger-bg px-4 py-2 text-sm text-red-200"
     >
       <span>{notice}</span>
       <button
@@ -405,39 +405,39 @@ export default function HomePage() {
 
   if (emptyMyPoems || (collection?.kind === "all" && !displayedPoems.length))
     return (
-      <main className="flex min-h-screen flex-col bg-[#080a0f] text-[#e4ddd0]">
+      <main className="flex min-h-screen flex-col bg-night text-cream">
         {noticeBanner}
         {header}
         <section className="grid flex-1 place-items-center px-6 py-16 text-center">
           {emptyMyPoems ? (
             <div className="max-w-md">
-              <p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+              <p className="text-xs uppercase tracking-[.2em] text-gold">
                 My Poems
               </p>
               <h1 className="mt-3 font-serif text-3xl">
                 You haven’t added any poems yet
               </h1>
-              <p className="mt-4 leading-relaxed text-[#8b8992]">
+              <p className="mt-4 leading-relaxed text-muted">
                 Your collection will appear here once you publish your first
                 poem.
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
                   to="/my-poems/new"
-                  className="bg-[#c9a84c] px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#080a0f] hover:bg-[#e8c97a]"
+                  className="bg-gold px-5 py-3 text-xs font-semibold uppercase tracking-widest text-night hover:bg-gold-light"
                 >
                   Write your first poem
                 </Link>
                 <Link
                   to="/home?view=all"
-                  className="border border-[#3d3660] px-5 py-3 text-xs uppercase tracking-widest text-[#c8c0b0] hover:border-[#c9a84c] hover:text-[#e8c97a]"
+                  className="border border-line-strong px-5 py-3 text-xs uppercase tracking-widest text-parchment hover:border-gold hover:text-gold-light"
                 >
                   Browse all poems
                 </Link>
               </div>
             </div>
           ) : (
-            <p className="text-[#8b8992]">No poems are available yet.</p>
+            <p className="text-muted">No poems are available yet.</p>
           )}
         </section>
         <HomeFooter onNavigate={navigate} viewer={viewer} />
@@ -446,7 +446,7 @@ export default function HomePage() {
 
   if (!collection || !active)
     return (
-      <main className="grid min-h-screen place-items-center bg-[#080a0f] text-[#8b8992]">
+      <main className="grid min-h-screen place-items-center bg-night text-muted">
         Gathering poems…
       </main>
     );
@@ -458,7 +458,7 @@ export default function HomePage() {
   const hasNextPoem =
     activeIndex >= 0 && activeIndex < displayedPoems.length - 1;
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-[#080a0f] text-[#e4ddd0]">
+    <main className="flex h-screen flex-col overflow-hidden bg-night text-cream">
       {noticeBanner}
       {header}
 

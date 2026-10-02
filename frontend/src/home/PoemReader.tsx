@@ -139,16 +139,16 @@ export function HomeFooter({
 }) {
   return (
     <footer
-      className={`flex shrink-0 items-center justify-between gap-4 border-t border-[#1e2235] bg-[#0e1018] px-4 py-3 text-xs ${compact ? "" : "sm:px-7"}`}
+      className={`flex shrink-0 items-center justify-between gap-4 border-t border-line-soft bg-panel px-4 py-3 text-xs ${compact ? "" : "sm:px-7"}`}
     >
-      <a href="/" className="text-[#c9a84c] hover:text-[#e8c97a]">
+      <a href="/" className="text-gold hover:text-gold-light">
         {compact ? "About" : "About Think or Drink Poetry"}
       </a>
       {viewer && (
         <button
           type="button"
           onClick={() => onNavigate("/contact")}
-          className="border border-[#3d3660] px-3 py-2 uppercase tracking-wider text-[#c8c0b0] hover:border-[#c9a84c] hover:text-[#e8c97a]"
+          className="border border-line-strong px-3 py-2 uppercase tracking-wider text-parchment hover:border-gold hover:text-gold-light"
         >
           Contact Me
         </button>
@@ -183,19 +183,19 @@ function PoemDetails({
   return (
     <>
       <p className="text-center text-xs uppercase tracking-[.25em]">
-        <a href={bioUrl} className="text-[#c9a84c] hover:text-[#e8c97a]">
+        <a href={bioUrl} className="text-gold hover:text-gold-light">
           {poem.poetDisplayName}
         </a>
       </p>
       {poem.poetBio?.trim() && (
-        <p className="mx-auto mt-2 max-w-xl text-center text-xs italic leading-relaxed text-[#8b8992]">
-          <span className="not-italic text-[#c8c0b0]">
+        <p className="mx-auto mt-2 max-w-xl text-center text-xs italic leading-relaxed text-muted">
+          <span className="not-italic text-parchment">
             About {poem.poetDisplayName}:{" "}
           </span>
           {bioSnippet(poem.poetBio)}{" "}
           <a
             href={bioUrl}
-            className="not-italic text-[#c9a84c] hover:text-[#e8c97a]"
+            className="not-italic text-gold hover:text-gold-light"
           >
             Read full bio
           </a>
@@ -241,15 +241,15 @@ function PoemDetails({
       <p className="mt-3 text-center text-xs">
         <a
           href={`/poems/${poem.poemId}/${slugify(poem.title)}`}
-          className="text-[#c9a84c]"
+          className="text-gold"
         >
           Open shareable poem page
         </a>
       </p>
       <div
-        className={`mx-auto my-6 h-px bg-[#c9a84c55] ${compact ? "w-40" : "w-48"}`}
+        className={`mx-auto my-6 h-px bg-gold/33 ${compact ? "w-40" : "w-48"}`}
       />
-      <div className="whitespace-pre-wrap font-serif text-lg italic leading-loose text-[#c8c0b0]">
+      <div className="whitespace-pre-wrap font-serif text-lg italic leading-loose text-parchment">
         {poem.poem}
       </div>
     </>
@@ -274,7 +274,7 @@ function PoemNavigationButton({
       onClick={() => void onClick()}
       aria-label={`${isPrevious ? "Previous" : "Next"} poem`}
       title={`${isPrevious ? "Previous" : "Next"} poem`}
-      className="grid h-9 w-9 place-items-center rounded-full border border-[#3d3660] text-lg text-[#c9a84c] transition hover:border-[#c9a84c] hover:text-[#e8c97a]"
+      className="grid h-9 w-9 place-items-center rounded-full border border-line-strong text-lg text-gold transition hover:border-gold hover:text-gold-light"
     >
       {isPrevious ? "←" : "→"}
     </button>
@@ -297,7 +297,7 @@ function PoemActions({
         onClick={() => onNavigate(`/my-poems/${poem.poemId}/edit`)}
         title="Edit this poem"
         aria-label={`Edit ${poem.title}`}
-        className="text-xl text-[#c9a84c] hover:text-[#e8c97a]"
+        className="text-xl text-gold hover:text-gold-light"
       >
         ✎
       </button>
@@ -322,19 +322,19 @@ function MobilePoemOfTheDay({
   poem: Poem;
 }) {
   return (
-    <details className="mb-8 border border-[#2a2840] bg-[#0d0f1a] p-4">
+    <details className="mb-8 border border-line bg-sidebar-deep p-4">
       <summary className="cursor-pointer list-none">
-        <span className="flex items-center gap-2 text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+        <span className="flex items-center gap-2 text-xs uppercase tracking-[.2em] text-gold">
           <span aria-hidden="true">▸</span>
           Poem of the Day
         </span>
-        <span className="mt-2 block font-serif text-base text-[#e4ddd0]">
+        <span className="mt-2 block font-serif text-base text-cream">
           {poem.title}
         </span>
       </summary>
       <a
         href="/poem-of-the-day"
-        className="mt-3 block text-xs text-[#c9a84c] hover:text-[#e8c97a]"
+        className="mt-3 block text-xs text-gold hover:text-gold-light"
       >
         Open today’s shareable page →
       </a>
@@ -343,15 +343,15 @@ function MobilePoemOfTheDay({
         onClick={() => void onChoosePoem(poem.poemId)}
         className="mt-4 block w-full text-left"
       >
-        <p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+        <p className="text-xs uppercase tracking-[.2em] text-gold">
           {poem.poetDisplayName}
         </p>
         <h2 className="mt-2 font-serif text-xl">{poem.title}</h2>
-        <p className="mt-3 font-serif text-[13px] italic leading-relaxed text-[#c8c0b0]">
+        <p className="mt-3 font-serif text-[13px] italic leading-relaxed text-parchment">
           {poem.poem.slice(0, 300)}
           {poem.poem.length > 300 ? "…" : ""}
         </p>
-        <p className="mt-4 text-xs text-[#c9a84c]">Read in the reader →</p>
+        <p className="mt-4 text-xs text-gold">Read in the reader →</p>
       </button>
     </details>
   );
@@ -365,17 +365,15 @@ function DesktopPoemOfTheDay({
   poem: Poem;
 }) {
   return (
-    <aside className="poetry-scroll hidden h-full w-[23rem] shrink-0 overflow-y-auto border-l border-[#1e2235] bg-[#0d0f1a] xl:block">
-      <div className="border-b border-[#1e2235] p-4">
-        <p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+    <aside className="poetry-scroll hidden h-full w-[23rem] shrink-0 overflow-y-auto border-l border-line-soft bg-sidebar-deep xl:block">
+      <div className="border-b border-line-soft p-4">
+        <p className="text-xs uppercase tracking-[.2em] text-gold">
           Poem of the Day
         </p>
-        <p className="mt-1 text-xs text-[#8b8992]">
-          A shared reading for today
-        </p>
+        <p className="mt-1 text-xs text-muted">A shared reading for today</p>
         <a
           href="/poem-of-the-day"
-          className="mt-3 inline-block text-xs text-[#c9a84c] hover:text-[#e8c97a]"
+          className="mt-3 inline-block text-xs text-gold hover:text-gold-light"
         >
           Open today’s shareable page →
         </a>
@@ -383,19 +381,17 @@ function DesktopPoemOfTheDay({
       <button
         type="button"
         onClick={() => void onChoosePoem(poem.poemId)}
-        className="block w-full px-6 py-8 text-left hover:bg-[#161a27]"
+        className="block w-full px-6 py-8 text-left hover:bg-raised"
       >
-        <p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+        <p className="text-xs uppercase tracking-[.2em] text-gold">
           {poem.poetDisplayName}
         </p>
-        <h2 className="mt-3 font-serif text-3xl text-[#e4ddd0]">
-          {poem.title}
-        </h2>
-        <div className="my-5 h-px w-32 bg-[#c9a84c55]" />
-        <div className="whitespace-pre-wrap font-serif text-base italic leading-loose text-[#c8c0b0]">
+        <h2 className="mt-3 font-serif text-3xl text-cream">{poem.title}</h2>
+        <div className="my-5 h-px w-32 bg-gold/33" />
+        <div className="whitespace-pre-wrap font-serif text-base italic leading-loose text-parchment">
           {poem.poem}
         </div>
-        <p className="mt-6 text-xs text-[#c9a84c]">Read in the main panel →</p>
+        <p className="mt-6 text-xs text-gold">Read in the main panel →</p>
       </button>
     </aside>
   );

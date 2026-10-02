@@ -4,9 +4,9 @@ import { formatDate } from "../poetry";
 import type { DisplayedPoem, MobilePanel, Poet, SearchResults } from "./types";
 
 const headerButton =
-  "inline-flex items-center justify-center border border-[#3d3660] bg-[#161a27] px-3 py-2 text-xs uppercase tracking-wider text-[#c8c0b0] transition hover:border-[#c9a84c] hover:text-[#e8c97a]";
+  "inline-flex items-center justify-center border border-line-strong bg-raised px-3 py-2 text-xs uppercase tracking-wider text-parchment transition hover:border-gold hover:text-gold-light";
 const newPoemButton =
-  "inline-flex items-center justify-center border border-[#c9a84c] bg-[#c9a84c] px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[#080a0f] transition hover:bg-[#e8c97a]";
+  "inline-flex items-center justify-center border border-gold bg-gold px-3 py-2 text-xs font-semibold uppercase tracking-wider text-night transition hover:bg-gold-light";
 
 type HomeHeaderProps = {
   activePoemId: string;
@@ -81,7 +81,7 @@ export default function HomeHeader({
 
   return (
     <>
-      <header className="z-30 shrink-0 border-b border-[#1e2235] bg-[#0e1018ee] px-4 py-3 backdrop-blur lg:hidden">
+      <header className="z-30 shrink-0 border-b border-line-soft bg-panel/93 px-4 py-3 backdrop-blur lg:hidden">
         <div className="flex items-center gap-2">
           <img
             src={ravenLogo}
@@ -111,7 +111,7 @@ export default function HomeHeader({
             onClick={() =>
               setMobilePanel(mobilePanel === "menu" ? null : "menu")
             }
-            className="ml-auto border border-[#3d3660] px-3 py-2 text-xs uppercase tracking-wider text-[#c8c0b0]"
+            className="ml-auto border border-line-strong px-3 py-2 text-xs uppercase tracking-wider text-parchment"
             aria-expanded={mobilePanel === "menu"}
           >
             ☰ Menu
@@ -125,7 +125,7 @@ export default function HomeHeader({
             onSearch(event.target.value);
           }}
           placeholder="Search poets or poems…"
-          className="mt-3 w-full border border-[#2a2840] bg-[#080a0f] px-3 py-2 text-sm outline-none focus:border-[#c9a84c]"
+          className="mt-3 w-full border border-line bg-night px-3 py-2 text-sm outline-none focus:border-gold"
         />
         {mobilePanel === "search" && (
           <MobileSearchResults
@@ -181,7 +181,7 @@ export default function HomeHeader({
         )}
       </header>
 
-      <header className="sticky top-0 z-20 hidden flex-wrap items-center justify-between gap-4 border-b border-[#1e2235] bg-[#0e1018ee] px-4 py-3 backdrop-blur sm:px-7 lg:flex">
+      <header className="sticky top-0 z-20 hidden flex-wrap items-center justify-between gap-4 border-b border-line-soft bg-panel/93 px-4 py-3 backdrop-blur sm:px-7 lg:flex">
         <div className="flex min-w-0 items-center gap-3">
           <img
             src={ravenLogo}
@@ -257,8 +257,8 @@ function MobileSearchResults({
 }) {
   if (query.trim().length < 2) {
     return (
-      <div className="mt-2 max-h-60 overflow-y-auto border border-[#2a2840] bg-[#161a27]">
-        <p className="border-b border-[#2a2840] px-3 py-2 text-[10px] uppercase tracking-widest text-[#8b8992]">
+      <div className="mt-2 max-h-60 overflow-y-auto border border-line bg-raised">
+        <p className="border-b border-line px-3 py-2 text-[10px] uppercase tracking-widest text-muted">
           All poets
         </p>
         {directory?.map((poet) => (
@@ -266,12 +266,10 @@ function MobileSearchResults({
             key={poet.poetId}
             type="button"
             onClick={() => onChoosePoet(poet.poetId)}
-            className="block w-full border-b border-[#2a2840] px-3 py-3 text-left text-sm"
+            className="block w-full border-b border-line px-3 py-3 text-left text-sm"
           >
             {poet.displayName}{" "}
-            <span className="text-xs text-[#8b8992]">
-              · {poet.poemCount} poems
-            </span>
+            <span className="text-xs text-muted">· {poet.poemCount} poems</span>
           </button>
         ))}
       </div>
@@ -279,18 +277,16 @@ function MobileSearchResults({
   }
 
   return (
-    <div className="mt-2 max-h-60 overflow-y-auto border border-[#2a2840] bg-[#161a27]">
+    <div className="mt-2 max-h-60 overflow-y-auto border border-line bg-raised">
       {results?.poets.map((poet) => (
         <button
           key={poet.poetId}
           type="button"
           onClick={() => onChoosePoet(poet.poetId)}
-          className="block w-full border-b border-[#2a2840] px-3 py-3 text-left text-sm"
+          className="block w-full border-b border-line px-3 py-3 text-left text-sm"
         >
           {poet.displayName}{" "}
-          <span className="text-xs text-[#8b8992]">
-            · {poet.poemCount} poems
-          </span>
+          <span className="text-xs text-muted">· {poet.poemCount} poems</span>
         </button>
       ))}
       {results?.poems.map((poem) => (
@@ -298,12 +294,10 @@ function MobileSearchResults({
           key={poem.poemId}
           type="button"
           onClick={() => onChoosePoem(poem.poemId)}
-          className="block w-full border-b border-[#2a2840] px-3 py-3 text-left text-sm"
+          className="block w-full border-b border-line px-3 py-3 text-left text-sm"
         >
           {poem.title}{" "}
-          <span className="text-xs text-[#8b8992]">
-            by {poem.poetDisplayName}
-          </span>
+          <span className="text-xs text-muted">by {poem.poetDisplayName}</span>
         </button>
       ))}
     </div>
@@ -338,19 +332,19 @@ function MobileBrowsePanel({
   onViewChange: (view: "poets" | "poems") => void;
 }) {
   return (
-    <div className="mt-2 border border-[#2a2840] bg-[#10121e]">
-      <div className="grid grid-cols-2 border-b border-[#2a2840]">
+    <div className="mt-2 border border-line bg-sidebar">
+      <div className="grid grid-cols-2 border-b border-line">
         <button
           type="button"
           onClick={() => onViewChange("poets")}
-          className={`px-3 py-3 text-xs uppercase tracking-wider ${view === "poets" ? "bg-[#161a27] text-[#e8c97a]" : "text-[#8b8992]"}`}
+          className={`px-3 py-3 text-xs uppercase tracking-wider ${view === "poets" ? "bg-raised text-gold-light" : "text-muted"}`}
         >
           Poets
         </button>
         <button
           type="button"
           onClick={() => onViewChange("poems")}
-          className={`px-3 py-3 text-xs uppercase tracking-wider ${view === "poems" ? "bg-[#161a27] text-[#e8c97a]" : "text-[#8b8992]"}`}
+          className={`px-3 py-3 text-xs uppercase tracking-wider ${view === "poems" ? "bg-raised text-gold-light" : "text-muted"}`}
         >
           Poems
         </button>
@@ -361,22 +355,20 @@ function MobileBrowsePanel({
             <button
               type="button"
               onClick={onShowAllPoems}
-              className={`block w-full border-b border-[#2a2840] px-4 py-3 text-left text-sm ${showingAllPoems ? "bg-[#161a27] text-[#e8c97a]" : ""}`}
+              className={`block w-full border-b border-line px-4 py-3 text-left text-sm ${showingAllPoems ? "bg-raised text-gold-light" : ""}`}
             >
               All Poems{" "}
-              <span className="text-xs text-[#8b8992]">— newest poems</span>
+              <span className="text-xs text-muted">— newest poems</span>
             </button>
             {directory?.map((poet) => (
               <button
                 type="button"
                 key={poet.poetId}
                 onClick={() => onChoosePoet(poet.poetId)}
-                className={`block w-full border-b border-[#2a2840] px-4 py-3 text-left text-sm ${!showingAllPoems && activePoetId === poet.poetId ? "bg-[#161a27] text-[#e8c97a]" : ""}`}
+                className={`block w-full border-b border-line px-4 py-3 text-left text-sm ${!showingAllPoems && activePoetId === poet.poetId ? "bg-raised text-gold-light" : ""}`}
               >
                 {poet.displayName}{" "}
-                <span className="text-xs text-[#8b8992]">
-                  ({poet.poemCount})
-                </span>
+                <span className="text-xs text-muted">({poet.poemCount})</span>
               </button>
             ))}
           </>
@@ -387,14 +379,14 @@ function MobileBrowsePanel({
                 type="button"
                 key={poem.poemId}
                 onClick={() => onChoosePoem(poem.poemId)}
-                className={`block w-full border-b border-[#2a2840] px-4 py-3 text-left ${activePoemId === poem.poemId ? "bg-[#161a27]" : ""}`}
+                className={`block w-full border-b border-line px-4 py-3 text-left ${activePoemId === poem.poemId ? "bg-raised" : ""}`}
               >
                 <span className="font-serif text-base">{poem.title}</span>
-                <span className="ml-2 text-[10px] uppercase tracking-wider text-[#8b8992]">
+                <span className="ml-2 text-[10px] uppercase tracking-wider text-muted">
                   {formatDate(poem.createdAt)}
                 </span>
                 {showingAllPoems && (
-                  <span className="ml-2 text-xs text-[#c9a84c]">
+                  <span className="ml-2 text-xs text-gold">
                     {poem.poetDisplayName}
                   </span>
                 )}
@@ -404,7 +396,7 @@ function MobileBrowsePanel({
               <button
                 type="button"
                 onClick={onLoadMore}
-                className="block w-full px-4 py-3 text-left text-xs uppercase tracking-widest text-[#c9a84c]"
+                className="block w-full px-4 py-3 text-left text-xs uppercase tracking-widest text-gold"
               >
                 Load more poems
               </button>
@@ -445,13 +437,13 @@ function DesktopSearch({
         onFocus={() => onFocusChange(true)}
         onBlur={() => window.setTimeout(() => onFocusChange(false), 150)}
         placeholder="Search poets or poems…"
-        className="w-full border border-[#2a2840] bg-[#080a0f] px-3 py-2 text-xs outline-none focus:border-[#c9a84c]"
+        className="w-full border border-line bg-night px-3 py-2 text-xs outline-none focus:border-gold"
       />
       {(showingDirectory || showingResults) && (
-        <div className="absolute z-30 mt-1 max-h-80 w-full overflow-auto border border-[#2a2840] bg-[#161a27]">
+        <div className="absolute z-30 mt-1 max-h-80 w-full overflow-auto border border-line bg-raised">
           {showingDirectory && (
             <>
-              <p className="border-b border-[#2a2840] px-3 py-2 text-[10px] uppercase tracking-widest text-[#8b8992]">
+              <p className="border-b border-line px-3 py-2 text-[10px] uppercase tracking-widest text-muted">
                 All poets
               </p>
               {directory?.map((poet) => (
@@ -459,12 +451,10 @@ function DesktopSearch({
                   key={poet.poetId}
                   type="button"
                   onClick={() => onChoosePoet(poet.poetId)}
-                  className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs"
+                  className="block w-full border-b border-line px-3 py-2 text-left text-xs"
                 >
                   {poet.displayName}{" "}
-                  <span className="text-[#8b8992]">
-                    · {poet.poemCount} poems
-                  </span>
+                  <span className="text-muted">· {poet.poemCount} poems</span>
                 </button>
               ))}
             </>
@@ -476,12 +466,10 @@ function DesktopSearch({
                   key={poet.poetId}
                   type="button"
                   onClick={() => onChoosePoet(poet.poetId)}
-                  className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs"
+                  className="block w-full border-b border-line px-3 py-2 text-left text-xs"
                 >
                   {poet.displayName}{" "}
-                  <span className="text-[#8b8992]">
-                    · {poet.poemCount} poems
-                  </span>
+                  <span className="text-muted">· {poet.poemCount} poems</span>
                 </button>
               ))}
               {results.poems.map((poem) => (
@@ -489,12 +477,10 @@ function DesktopSearch({
                   key={poem.poemId}
                   type="button"
                   onClick={() => onChoosePoem(poem.poemId)}
-                  className="block w-full border-b border-[#2a2840] px-3 py-2 text-left text-xs"
+                  className="block w-full border-b border-line px-3 py-2 text-left text-xs"
                 >
                   {poem.title}{" "}
-                  <span className="text-[#8b8992]">
-                    by {poem.poetDisplayName}
-                  </span>
+                  <span className="text-muted">by {poem.poetDisplayName}</span>
                 </button>
               ))}
             </>
@@ -520,7 +506,7 @@ function MobileAccountMenu({
 }) {
   if (!viewer) {
     return (
-      <div className="mt-2 grid grid-cols-2 gap-2 border border-[#2a2840] bg-[#10121e] p-2">
+      <div className="mt-2 grid grid-cols-2 gap-2 border border-line bg-sidebar p-2">
         <button
           type="button"
           onClick={() => onNavigate("/sign-in")}
@@ -533,7 +519,7 @@ function MobileAccountMenu({
   }
 
   return (
-    <div className="mt-2 grid grid-cols-2 gap-2 border border-[#2a2840] bg-[#10121e] p-2">
+    <div className="mt-2 grid grid-cols-2 gap-2 border border-line bg-sidebar p-2">
       <button
         type="button"
         onClick={() => onNavigate("/my-poems/new")}
@@ -603,7 +589,7 @@ function DesktopAccountMenu({
       {open && (
         <div
           id="account-menu"
-          className="absolute right-0 z-40 mt-2 w-40 border border-[#3d3660] bg-[#161a27] p-1 shadow-xl"
+          className="absolute right-0 z-40 mt-2 w-40 border border-line-strong bg-raised p-1 shadow-xl"
         >
           <MenuButton onClick={() => onNavigate("/account/setup")}>
             Profile
@@ -637,7 +623,7 @@ function MenuButton({
     <button
       type="button"
       onClick={onClick}
-      className={`block w-full px-3 py-2 text-left text-xs uppercase tracking-wider hover:bg-[#22263a] ${destructive ? "text-red-200 hover:text-red-100" : "text-[#c8c0b0] hover:text-[#e8c97a]"}`}
+      className={`block w-full px-3 py-2 text-left text-xs uppercase tracking-wider hover:bg-raised-hover ${destructive ? "text-red-200 hover:text-red-100" : "text-parchment hover:text-gold-light"}`}
     >
       {children}
     </button>

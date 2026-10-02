@@ -30,39 +30,39 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080a0f] px-4 py-10 text-[#e4ddd0] sm:py-16">
+    <main className="min-h-screen bg-night px-4 py-10 text-cream sm:py-16">
       <div className="mx-auto max-w-3xl">
         <Link
           to="/home?view=mine"
-          className="mb-8 inline-block text-xs uppercase tracking-widest text-[#c9a84c]"
+          className="mb-8 inline-block text-xs uppercase tracking-widest text-gold"
         >
           ← Back to my poems
         </Link>
-        <section className="border border-[#2a2840] bg-[#0e1018] p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
+        <section className="border border-line bg-panel p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
           <img
             src={ravenLogo}
             alt="Think or Drink Poetry"
             className="mx-auto h-12 max-w-full object-contain"
           />
-          <p className="mt-8 text-center text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+          <p className="mt-8 text-center text-xs uppercase tracking-[.2em] text-gold">
             The Raven's Nest
           </p>
           <h1 className="mt-3 text-center font-serif text-3xl">Contact Me</h1>
-          <p className="mx-auto mt-4 max-w-xl text-center leading-relaxed text-[#c8c0b0]">
+          <p className="mx-auto mt-4 max-w-xl text-center leading-relaxed text-parchment">
             Want to report a bug, ask for an enhancement, or just banter with
             the admin of this site? Send a note to The Raven's Nest.
           </p>
           {sent ? (
             <div className="mt-10 text-center">
-              <p role="status" className="text-lg text-[#e8c97a]">
+              <p role="status" className="text-lg text-gold-light">
                 Your message has taken flight.
               </p>
-              <p className="mt-2 text-sm text-[#8b8992]">
+              <p className="mt-2 text-sm text-muted">
                 Thank you for reaching out.
               </p>
               <Link
                 to="/home?view=mine"
-                className="mt-8 inline-block border border-[#c9a84c] px-5 py-3 text-xs uppercase tracking-widest text-[#c9a84c]"
+                className="mt-8 inline-block border border-gold px-5 py-3 text-xs uppercase tracking-widest text-gold"
               >
                 Back to my poems
               </Link>
@@ -72,7 +72,7 @@ export default function ContactPage() {
               <div>
                 <label
                   htmlFor="contact-message"
-                  className="mb-2 block text-xs uppercase tracking-wider text-[#8b8992]"
+                  className="mb-2 block text-xs uppercase tracking-wider text-muted"
                 >
                   Your message
                 </label>
@@ -84,13 +84,13 @@ export default function ContactPage() {
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder="Tell the Raven what is on your mind…"
-                  className="w-full resize-y border border-[#2a2840] bg-[#080a0f] px-4 py-3 font-serif leading-relaxed outline-none focus:border-[#c9a84c]"
+                  className="w-full resize-y border border-line bg-night px-4 py-3 font-serif leading-relaxed outline-none focus:border-gold"
                 />
-                <p className="mt-1 text-right text-xs text-[#8b8992]">
+                <p className="mt-1 text-right text-xs text-muted">
                   {message.length.toLocaleString()} / 10,000
                 </p>
               </div>
-              <p className="text-xs leading-relaxed text-[#8b8992]">
+              <p className="text-xs leading-relaxed text-muted">
                 Your stored full name, pen name, and account email will be
                 included so the admin knows who sent this message.
               </p>
@@ -102,14 +102,14 @@ export default function ContactPage() {
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Link
                   to="/home?view=mine"
-                  className="border border-[#3d3660] px-5 py-3 text-center text-xs uppercase tracking-widest text-[#c8c0b0]"
+                  className="border border-line-strong px-5 py-3 text-center text-xs uppercase tracking-widest text-parchment"
                 >
                   Cancel
                 </Link>
                 <button
                   type="submit"
                   disabled={sending}
-                  className="bg-[#c9a84c] px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#080a0f] disabled:opacity-60"
+                  className="bg-gold px-5 py-3 text-xs font-semibold uppercase tracking-widest text-night disabled:opacity-60"
                 >
                   {sending ? "Sending…" : "Send to the Raven"}
                 </button>

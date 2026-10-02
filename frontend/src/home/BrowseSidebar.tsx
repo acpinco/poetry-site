@@ -30,23 +30,23 @@ export default function BrowseSidebar({
     : `${poetPoemCount} ${poetPoemCount === 1 ? "poem" : "poems"}`;
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-[#1e2235] bg-[#10121e] xl:w-80">
-      <div className="border-b border-[#1e2235] bg-[#0d0f1a] p-4">
-        <p className="text-xs uppercase tracking-[.2em] text-[#c9a84c]">
+    <aside className="flex w-72 shrink-0 flex-col border-r border-line-soft bg-sidebar xl:w-80">
+      <div className="border-b border-line-soft bg-sidebar-deep p-4">
+        <p className="text-xs uppercase tracking-[.2em] text-gold">
           {showingAllPoems ? "Browse poems" : "Selected poet"}
         </p>
         <div className="mt-2 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="truncate font-serif text-xl text-[#e4ddd0]">
+            <h2 className="truncate font-serif text-xl text-cream">
               {heading}
             </h2>
-            <p className="mt-1 text-xs text-[#8b8992]">{description}</p>
+            <p className="mt-1 text-xs text-muted">{description}</p>
           </div>
           {!showingAllPoems && (
             <button
               type="button"
               onClick={() => void onShowAllPoems()}
-              className="shrink-0 border border-[#3d3660] px-2 py-1 text-[10px] uppercase tracking-wider text-[#c8c0b0] hover:border-[#c9a84c] hover:text-[#e8c97a]"
+              className="shrink-0 border border-line-strong px-2 py-1 text-[10px] uppercase tracking-wider text-parchment hover:border-gold hover:text-gold-light"
             >
               All Poems
             </button>
@@ -55,7 +55,7 @@ export default function BrowseSidebar({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <p className="shrink-0 border-b border-[#1e2235] px-4 py-3 text-xs text-[#8b8992]">
+        <p className="shrink-0 border-b border-line-soft px-4 py-3 text-xs text-muted">
           {showingAllPoems
             ? "Choose a poem or search for a poet above."
             : "Choose a poem, or search for another poet above."}
@@ -66,12 +66,12 @@ export default function BrowseSidebar({
               type="button"
               key={poem.poemId}
               onClick={() => void onSelectListPoem(poem.poemId)}
-              className={`block w-full border-b border-[#1e2235] px-4 py-3 text-left transition hover:bg-[#161a27] ${activePoemId === poem.poemId ? "border-l-2 border-l-[#c9a84c] bg-[#161a27]" : "border-l-2 border-l-transparent"}`}
+              className={`block w-full border-b border-line-soft px-4 py-3 text-left transition hover:bg-raised ${activePoemId === poem.poemId ? "border-l-2 border-l-gold bg-raised" : "border-l-2 border-l-transparent"}`}
             >
-              <span className="block truncate font-serif text-sm text-[#e4ddd0]">
+              <span className="block truncate font-serif text-sm text-cream">
                 {poem.title}
               </span>
-              <span className="mt-1 block text-[10px] uppercase tracking-wider text-[#8b8992]">
+              <span className="mt-1 block text-[10px] uppercase tracking-wider text-muted">
                 {formatDate(poem.createdAt)}
               </span>
             </button>
@@ -80,7 +80,7 @@ export default function BrowseSidebar({
             <button
               type="button"
               onClick={() => void onLoadMore()}
-              className="block w-full border-b border-[#1e2235] px-4 py-3 text-left text-xs uppercase tracking-widest text-[#c9a84c] hover:bg-[#161a27]"
+              className="block w-full border-b border-line-soft px-4 py-3 text-left text-xs uppercase tracking-widest text-gold hover:bg-raised"
             >
               Load more poems
             </button>

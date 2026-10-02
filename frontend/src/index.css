@@ -4,6 +4,33 @@
 @theme {
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "Lora", Georgia, serif;
+
+  /* The site palette. Use these names (text-gold, bg-night, border-line, …)
+     instead of raw hex values so a colour changes in one place. */
+  --color-gold: #c9a84c;
+  --color-gold-light: #e8c97a;
+  --color-gold-dark: #a8872d;
+  --color-cream: #e4ddd0;
+  --color-parchment: #c8c0b0;
+  --color-muted: #8b8992;
+  --color-faint: #4a4857;
+  --color-dusk: #6a6580;
+  --color-night: #080a0f;
+  --color-panel: #0e1018;
+  --color-inset: #0b0d14;
+  --color-sidebar: #10121e;
+  --color-sidebar-deep: #0d0f1a;
+  --color-raised: #161a27;
+  --color-raised-hover: #22263a;
+  --color-twilight: #12102a;
+  --color-line: #2a2840;
+  --color-line-soft: #1e2235;
+  --color-line-strong: #3d3660;
+  --color-danger-line: #5a2a33;
+  --color-danger-bg: #24121a;
+  --color-selection: #3b2d5e;
+  --color-scrollbar: #493566;
+  --color-scrollbar-hover: #674b8c;
 }
 
 *,
@@ -15,32 +42,32 @@ html,
 body {
   margin: 0;
   min-width: 320px;
-  background: #080a0f;
-  color: #e4ddd0;
+  background: var(--color-night);
+  color: var(--color-cream);
   font-family: var(--font-body);
 }
 ::selection {
-  background: #3b2d5e;
-  color: #e8c97a;
+  background: var(--color-selection);
+  color: var(--color-gold-light);
 }
 
 .poetry-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #493566 #0d0f1a;
+  scrollbar-color: var(--color-scrollbar) var(--color-sidebar-deep);
 }
 .poetry-scroll::-webkit-scrollbar {
   width: 8px;
 }
 .poetry-scroll::-webkit-scrollbar-track {
-  background: #0d0f1a;
+  background: var(--color-sidebar-deep);
 }
 .poetry-scroll::-webkit-scrollbar-thumb {
-  background: #493566;
-  border: 2px solid #0d0f1a;
+  background: var(--color-scrollbar);
+  border: 2px solid var(--color-sidebar-deep);
   border-radius: 999px;
 }
 .poetry-scroll::-webkit-scrollbar-thumb:hover {
-  background: #674b8c;
+  background: var(--color-scrollbar-hover);
 }
 
 .poetry-horizontal-scroll {

@@ -61,15 +61,15 @@ export default function PoemEditorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080a0f] px-4 py-10 text-[#e4ddd0] sm:py-16">
+    <main className="min-h-screen bg-night px-4 py-10 text-cream sm:py-16">
       <div className="mx-auto max-w-3xl">
         <Link
           to={returnPath}
-          className="mb-8 inline-block text-xs uppercase tracking-widest text-[#c9a84c]"
+          className="mb-8 inline-block text-xs uppercase tracking-widest text-gold"
         >
           ← Back to poems
         </Link>
-        <section className="border border-[#2a2840] bg-[#0e1018] p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
+        <section className="border border-line bg-panel p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
           <img
             src={ravenLogo}
             alt="Think or Drink Poetry"
@@ -78,17 +78,17 @@ export default function PoemEditorPage() {
           <h1 className="mt-8 text-center font-serif text-3xl">
             {poemId ? "Edit your poem" : "Write a new poem"}
           </h1>
-          <p className="mt-2 text-center text-sm text-[#8b8992]">
+          <p className="mt-2 text-center text-sm text-muted">
             Your words are yours. Take your time.
           </p>
           {loading ? (
-            <p className="mt-10 text-center text-[#8b8992]">Opening poem…</p>
+            <p className="mt-10 text-center text-muted">Opening poem…</p>
           ) : (
             <form onSubmit={save} className="mt-10 space-y-6">
               <div>
                 <label
                   htmlFor="poem-title"
-                  className="mb-2 block text-xs uppercase tracking-wider text-[#8b8992]"
+                  className="mb-2 block text-xs uppercase tracking-wider text-muted"
                 >
                   Title
                 </label>
@@ -99,13 +99,13 @@ export default function PoemEditorPage() {
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Give your poem a title"
-                  className="w-full border border-[#2a2840] bg-[#080a0f] px-4 py-3 text-base outline-none focus:border-[#c9a84c]"
+                  className="w-full border border-line bg-night px-4 py-3 text-base outline-none focus:border-gold"
                 />
               </div>
               <div>
                 <label
                   htmlFor="poem-body"
-                  className="mb-2 block text-xs uppercase tracking-wider text-[#8b8992]"
+                  className="mb-2 block text-xs uppercase tracking-wider text-muted"
                 >
                   Poem
                 </label>
@@ -117,9 +117,9 @@ export default function PoemEditorPage() {
                   onChange={(event) => setPoem(event.target.value)}
                   placeholder="Begin writing…"
                   rows={18}
-                  className="w-full resize-y border border-[#2a2840] bg-[#080a0f] px-4 py-3 font-serif text-base leading-relaxed outline-none focus:border-[#c9a84c]"
+                  className="w-full resize-y border border-line bg-night px-4 py-3 font-serif text-base leading-relaxed outline-none focus:border-gold"
                 />
-                <p className="mt-1 text-right text-xs text-[#8b8992]">
+                <p className="mt-1 text-right text-xs text-muted">
                   {poem.length.toLocaleString()} / 100,000
                 </p>
               </div>
@@ -131,14 +131,14 @@ export default function PoemEditorPage() {
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Link
                   to={returnPath}
-                  className="border border-[#3d3660] px-5 py-3 text-center text-xs uppercase tracking-widest text-[#c8c0b0]"
+                  className="border border-line-strong px-5 py-3 text-center text-xs uppercase tracking-widest text-parchment"
                 >
                   Cancel
                 </Link>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-[#c9a84c] px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#080a0f] disabled:opacity-60"
+                  className="bg-gold px-5 py-3 text-xs font-semibold uppercase tracking-widest text-night disabled:opacity-60"
                 >
                   {saving
                     ? "Saving…"

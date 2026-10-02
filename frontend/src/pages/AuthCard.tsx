@@ -7,29 +7,29 @@ function FeatherDecor({ className }: { className?: string }) {
     <svg
       viewBox="0 0 40 120"
       fill="none"
-      className={className}
+      className={`text-gold ${className ?? ""}`}
       aria-hidden="true"
     >
       <path
         d="M20 5 C30 25 35 50 25 70 C20 80 18 95 20 115"
-        stroke="#c9a84c"
+        stroke="currentColor"
         strokeWidth="1.2"
         strokeLinecap="round"
         opacity=".4"
       />
       <path
         d="M20 20 C28 18 34 22 30 30 C26 26 22 22 20 20Z"
-        fill="#c9a84c"
+        fill="currentColor"
         opacity=".25"
       />
       <path
         d="M22 35 C30 30 36 35 32 44 C28 38 24 34 22 35Z"
-        fill="#c9a84c"
+        fill="currentColor"
         opacity=".2"
       />
       <path
         d="M20 18 C12 16 6 22 10 30 C14 26 18 22 20 18Z"
-        fill="#c9a84c"
+        fill="currentColor"
         opacity=".22"
       />
     </svg>
@@ -38,16 +38,17 @@ function FeatherDecor({ className }: { className?: string }) {
 
 /** Text inputs on the sign-in and profile cards; focus styling is pure CSS. */
 export const authInputClass =
-  "w-full bg-[#0e1018] border border-[#2a2840] hover:border-[#3d3660] focus:border-[#c9a84c] focus:shadow-[0_0_0_1px_rgba(201,168,76,0.25)] text-[#e4ddd0] placeholder-[#4a4857] rounded px-4 py-3 text-sm outline-none transition-all duration-300";
+  "w-full bg-panel border border-line hover:border-line-strong focus:border-gold focus:shadow-[0_0_0_1px_rgba(201,168,76,0.25)] text-cream placeholder:text-faint rounded px-4 py-3 text-sm outline-none transition-all duration-300";
 
-export const authLabelClass = "block text-xs mb-2 tracking-wide text-[#8b8992]";
+export const authLabelClass = "block text-xs mb-2 tracking-wide text-muted";
 
 export function AuthDivider() {
   return (
     <div
       className="h-px"
       style={{
-        background: "linear-gradient(90deg, transparent, #2a2840, transparent)",
+        background:
+          "linear-gradient(90deg, transparent, var(--color-line), transparent)",
       }}
     />
   );
@@ -67,8 +68,9 @@ export function AuthSubmitButton({
       className="w-full py-3.5 text-sm tracking-widest uppercase disabled:opacity-60"
       style={{
         letterSpacing: ".2em",
-        background: "linear-gradient(135deg, #c9a84c 0%, #a8872d 100%)",
-        color: "#080a0f",
+        background:
+          "linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-dark) 100%)",
+        color: "var(--color-night)",
         fontWeight: 600,
         borderRadius: "2px",
         border: "none",
@@ -94,7 +96,7 @@ export default function AuthCard({
       className="min-h-screen flex items-center justify-center px-4 py-16 relative overflow-hidden"
       style={{
         background:
-          "radial-gradient(ellipse at 30% 20%, #12102a 0%, #080a0f 60%)",
+          "radial-gradient(ellipse at 30% 20%, var(--color-twilight) 0%, var(--color-night) 60%)",
       }}
     >
       <FeatherDecor className="absolute top-10 left-8 w-8 h-24 feather-float opacity-60 rotate-12" />
@@ -103,7 +105,7 @@ export default function AuthCard({
         {backTo && (
           <Link
             to={backTo}
-            className="mb-8 inline-block text-xs uppercase tracking-widest text-[#c9a84c]"
+            className="mb-8 inline-block text-xs uppercase tracking-widest text-gold"
           >
             ← Back to poems
           </Link>
@@ -111,8 +113,9 @@ export default function AuthCard({
         <div
           className="card-glow relative w-full"
           style={{
-            background: "linear-gradient(160deg, #161a27 0%, #0e1018 100%)",
-            border: "1px solid #2a2840",
+            background:
+              "linear-gradient(160deg, var(--color-raised) 0%, var(--color-panel) 100%)",
+            border: "1px solid var(--color-line)",
             borderRadius: "4px",
           }}
         >
@@ -120,7 +123,7 @@ export default function AuthCard({
             className="absolute top-0 left-8 right-8 h-px"
             style={{
               background:
-                "linear-gradient(90deg, transparent, #c9a84c55, transparent)",
+                "linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-gold) 33%, transparent), transparent)",
             }}
           />
           <div className="px-6 py-10 sm:px-10 sm:py-12">
@@ -133,7 +136,7 @@ export default function AuthCard({
             </div>
             <p
               className="text-center text-sm italic mb-10"
-              style={{ color: "#6a6580" }}
+              style={{ color: "var(--color-dusk)" }}
             >
               Where poets find their voice in shadow and light.
             </p>
@@ -143,7 +146,7 @@ export default function AuthCard({
             className="absolute bottom-0 left-8 right-8 h-px"
             style={{
               background:
-                "linear-gradient(90deg, transparent, #c9a84c55, transparent)",
+                "linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-gold) 33%, transparent), transparent)",
             }}
           />
         </div>
@@ -155,7 +158,7 @@ export default function AuthCard({
 export function AuthLoading() {
   return (
     <AuthCard>
-      <p className="text-center text-[#8b8992]">Preparing your page…</p>
+      <p className="text-center text-muted">Preparing your page…</p>
     </AuthCard>
   );
 }

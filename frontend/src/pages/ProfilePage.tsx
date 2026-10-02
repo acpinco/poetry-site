@@ -105,10 +105,10 @@ export default function ProfilePage() {
       <form onSubmit={save} className="space-y-5">
         <div>
           <p className={authLabelClass}>Account Email</p>
-          <p className="break-all rounded border border-[#2a2840] bg-[#0b0d14] px-4 py-3 text-sm text-[#c8c0b0]">
+          <p className="break-all rounded border border-line bg-inset px-4 py-3 text-sm text-parchment">
             {signedIn?.email}
           </p>
-          <p className="text-xs mt-1.5 italic text-[#4a4857]">
+          <p className="text-xs mt-1.5 italic text-faint">
             Sign-in links for this profile are sent here.
           </p>
         </div>
@@ -130,7 +130,7 @@ export default function ProfilePage() {
         </div>
         <div>
           <label htmlFor="penName" className={authLabelClass}>
-            Pen Name <span className="text-[#4a4857] italic">— optional</span>
+            Pen Name <span className="text-faint italic">— optional</span>
           </label>
           <input
             id="penName"
@@ -141,16 +141,16 @@ export default function ProfilePage() {
             className={authInputClass}
           />
           {derivedPenName && !penName && (
-            <p className="text-xs mt-1.5 italic text-[#4a4857]">
+            <p className="text-xs mt-1.5 italic text-faint">
               Will appear as{" "}
-              <span className="text-[#c9a84c88]">{derivedPenName}</span>
+              <span className="text-gold/53">{derivedPenName}</span>
             </p>
           )}
         </div>
         <div>
           <label htmlFor="bio" className={authLabelClass}>
             A Few Words About You{" "}
-            <span className="text-[#4a4857] italic">— optional</span>
+            <span className="text-faint italic">— optional</span>
           </label>
           <textarea
             id="bio"
@@ -161,7 +161,7 @@ export default function ProfilePage() {
             placeholder="I write at the edge of night, where the words I cannot speak find their shape..."
             className={`${authInputClass} resize-none leading-relaxed`}
           />
-          <p className="text-xs mt-1.5 text-right text-[#4a4857]">
+          <p className="text-xs mt-1.5 text-right text-faint">
             {bio.length} / 500
           </p>
         </div>
@@ -193,7 +193,7 @@ function Field({
   return (
     <div>
       <label htmlFor={id} className={authLabelClass}>
-        {label} <span className="text-[#c9a84c]">*</span>
+        {label} <span className="text-gold">*</span>
       </label>
       <input
         id={id}

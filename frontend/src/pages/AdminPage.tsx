@@ -109,12 +109,12 @@ export default function AdminPage() {
         aria-sort={
           active ? (sort.descending ? "descending" : "ascending") : "none"
         }
-        className="border-b border-[#2a2840] px-3 py-3 text-left font-normal"
+        className="border-b border-line px-3 py-3 text-left font-normal"
       >
         <button
           type="button"
           onClick={() => sortBy(key)}
-          className={`text-xs uppercase tracking-wider hover:text-[#e8c97a] ${active ? "text-[#c9a84c]" : "text-[#8b8992]"}`}
+          className={`text-xs uppercase tracking-wider hover:text-gold-light ${active ? "text-gold" : "text-muted"}`}
         >
           {label}
           <span aria-hidden="true" className="ml-1 inline-block w-3">
@@ -126,15 +126,15 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080a0f] px-4 py-10 text-[#e4ddd0] sm:py-16">
+    <main className="min-h-screen bg-night px-4 py-10 text-cream sm:py-16">
       <div className="mx-auto max-w-5xl">
         <Link
           to="/home"
-          className="mb-8 inline-block text-xs uppercase tracking-widest text-[#c9a84c]"
+          className="mb-8 inline-block text-xs uppercase tracking-widest text-gold"
         >
           ← Back to poems
         </Link>
-        <section className="border border-[#2a2840] bg-[#0e1018] p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
+        <section className="border border-line bg-panel p-6 shadow-[0_0_30px_rgba(201,168,76,.08)] sm:p-10">
           <img
             src={ravenLogo}
             alt="Think or Drink Poetry"
@@ -146,10 +146,10 @@ export default function AdminPage() {
               {error}
             </p>
           ) : !poets ? (
-            <p className="mt-10 text-center text-[#8b8992]">Loading poets…</p>
+            <p className="mt-10 text-center text-muted">Loading poets…</p>
           ) : (
             <>
-              <p className="mt-2 text-center text-sm text-[#8b8992]">
+              <p className="mt-2 text-center text-sm text-muted">
                 {poets.length} {poets.length === 1 ? "poet" : "poets"} ·{" "}
                 {seenThisWeek} seen in the last 7 days
               </p>
@@ -168,30 +168,30 @@ export default function AdminPage() {
                     {sorted.map((poet) => (
                       <tr
                         key={poet.poetId}
-                        className="border-b border-[#1e2235] hover:bg-[#161a27]"
+                        className="border-b border-line-soft hover:bg-raised"
                       >
                         <td className="px-3 py-3">
                           <span className="font-serif">{poet.penName}</span>
                           {poet.role === "ADMIN" && (
-                            <span className="ml-2 border border-[#c9a84c] px-1.5 text-[10px] uppercase tracking-wider text-[#c9a84c]">
+                            <span className="ml-2 border border-gold px-1.5 text-[10px] uppercase tracking-wider text-gold">
                               Admin
                             </span>
                           )}
                           {poet.penName !== poet.fullName && (
-                            <span className="block text-xs text-[#8b8992]">
+                            <span className="block text-xs text-muted">
                               {poet.fullName}
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-3 text-[#c8c0b0]">
+                        <td className="px-3 py-3 text-parchment">
                           {poet.email}
                         </td>
                         <td
-                          className={`px-3 py-3 ${poet.accountStatus === "LOCKED" ? "text-red-300" : "text-[#c8c0b0]"}`}
+                          className={`px-3 py-3 ${poet.accountStatus === "LOCKED" ? "text-red-300" : "text-parchment"}`}
                         >
                           {STATUS_LABELS[poet.accountStatus]}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-[#c8c0b0]">
+                        <td className="whitespace-nowrap px-3 py-3 text-parchment">
                           {formatDate(poet.createdAt)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-3">
@@ -203,7 +203,7 @@ export default function AdminPage() {
                               {timeAgo(poet.lastSeenAt, loaded!.loadedAt)}
                             </time>
                           ) : (
-                            <span className="text-[#8b8992]">Never</span>
+                            <span className="text-muted">Never</span>
                           )}
                         </td>
                       </tr>
