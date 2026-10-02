@@ -34,12 +34,34 @@ public class PublicLinks {
         return siteUrl + "/sign-in";
     }
 
+    /** Opens the create-account form, or the new-poem editor for someone already signed in. */
+    public String join() {
+        return siteUrl + "/sign-in?join=1";
+    }
+
     public String poemOfTheDay() {
         return siteUrl + "/poem-of-the-day";
     }
 
     public String poem(UUID poemId, String title) {
         return siteUrl + "/poems/" + poemId + "/" + slugify(title);
+    }
+
+    /** Redirects to a random poem other than the one being read. */
+    public String anotherPoem(UUID currentPoemId) {
+        return siteUrl + "/poems/random?from=" + currentPoemId;
+    }
+
+    public String siteImage() {
+        return siteUrl + "/share.png";
+    }
+
+    public String poemImage(UUID poemId) {
+        return siteUrl + "/poems/" + poemId + "/share.png";
+    }
+
+    public String poetImage(UUID poetId) {
+        return siteUrl + "/poets/" + poetId + "/share.png";
     }
 
     public String poet(UUID poetId, String name) {

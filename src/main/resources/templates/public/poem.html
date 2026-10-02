@@ -7,6 +7,8 @@
 <p class="date" th:text="|Published ${publishedOn}|"></p>
 <div class="poem" th:text="${poem.poem}"></div>
 <p><a th:href="${links.poet(poem.poetId, poem.poetDisplayName)}" th:text="|More poems by ${poem.poetDisplayName}|"></a></p>
+<p class="next"><a class="button secondary" rel="nofollow" th:href="${links.anotherPoem(poem.poemId)}">Read another poem →</a></p>
 </article>
+<th:block th:replace="~{public/invite :: invite}"></th:block>
 </th:block>
 </html>

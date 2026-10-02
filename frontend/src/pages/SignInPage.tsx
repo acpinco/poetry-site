@@ -24,7 +24,9 @@ function failureMessage(reason: unknown, mode: Mode) {
 export default function SignInPage() {
   const { session } = useSession();
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<Mode>("sign-in");
+  // "Share your poems" links on the public pages arrive with ?join=1.
+  const joining = searchParams.has("join");
+  const [mode, setMode] = useState<Mode>(joining ? "sign-up" : "sign-in");
   const [email, setEmail] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
@@ -34,10 +36,14 @@ export default function SignInPage() {
   const expiredLink = searchParams.get("error") === "magic-link";
 
   if (session.status === "loading") return <AuthLoading />;
-  if (session.status === "signed-in")
-    return (
-      <Navigate to={session.poetId ? "/home" : "/account/setup"} replace />
-    );
+  if (session.status === "signed-in") {
+    const destination = !session.poetId
+      ? "/account/setup"
+      : joining
+        ? "/my-poems/new"
+        : "/home";
+    return <Navigate to={destination} replace />;
+  }
 
   function switchMode(next: Mode) {
     setMode(next);

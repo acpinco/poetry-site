@@ -7,6 +7,8 @@
 <p class="byline" th:text="|By ${poem.poetDisplayName}|"></p>
 <div class="poem" th:text="${poem.poem}"></div>
 <p><a th:href="${links.poem(poem.poemId, poem.title)}">Open this poem’s permanent page</a></p>
+<p class="next"><a class="button secondary" rel="nofollow" th:href="${links.anotherPoem(poem.poemId)}">Read another poem →</a></p>
 </article>
+<th:block th:replace="~{public/invite :: invite}"></th:block>
 </th:block>
 </html>

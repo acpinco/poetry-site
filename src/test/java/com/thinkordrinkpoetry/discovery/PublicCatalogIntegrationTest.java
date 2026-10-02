@@ -1,5 +1,6 @@
 package com.thinkordrinkpoetry.discovery;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
@@ -7,17 +8,24 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.thinkordrinkpoetry.PoetrySiteApplication;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
 import java.util.UUID;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -173,7 +181,47 @@ class PublicCatalogIntegrationTest {
                 .andExpect(content().string(containsString("\"datePublished\":\"1999-03-12\"")))
                 .andExpect(content()
                         .string(containsString("href=\"http://localhost:5173/poets/" + maya + "/caged-bird\"")))
-                .andExpect(content().string(not(containsString("<Verse>"))));
+                .andExpect(content().string(not(containsString("<Verse>"))))
+                .andExpect(content()
+                        .string(containsString("<meta property=\"og:image\" content=\"http://localhost:5173/poems/"
+                                + legacyPoem + "/share.png\">")))
+                .andExpect(content()
+                        .string(containsString("<meta name=\"twitter:card\" content=\"summary_large_image\">")))
+                .andExpect(content()
+                        .string(containsString("href=\"http://localhost:5173/poems/random?from=" + legacyPoem + "\"")))
+                .andExpect(content().string(containsString("href=\"http://localhost:5173/sign-in?join=1\"")));
+    }
+
+    @Test
+    void shareImagesArePngCardsThatCacheForADay() throws Exception {
+        for (String path :
+                new String[] {"/share.png", "/poems/" + legacyPoem + "/share.png", "/poets/" + maya + "/share.png"}) {
+            byte[] png = mockMvc.perform(get(path))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.IMAGE_PNG))
+                    .andExpect(header().string("Cache-Control", "max-age=86400, public"))
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsByteArray();
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(png));
+            assertThat(image.getWidth()).as(path).isEqualTo(1200);
+            assertThat(image.getHeight()).as(path).isEqualTo(630);
+        }
+        mockMvc.perform(get("/poems/{id}/share.png", UUID.randomUUID())).andExpect(status().isNotFound());
+        mockMvc.perform(get("/poets/{id}/share.png", empty)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void readAnotherPoemRedirectsToADifferentPoem() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            mockMvc.perform(get("/poems/random").param("from", road.toString()))
+                    .andExpect(status().isFound())
+                    .andExpect(redirectedUrlPattern("http://localhost:5173/poems/*/*"))
+                    .andExpect(header().string("Location", not(containsString(road.toString()))));
+        }
+        jdbc.update("delete from poem where id <> ?", road);
+        mockMvc.perform(get("/poems/random").param("from", road.toString()))
+                .andExpect(redirectedUrl("http://localhost:5173/home"));
     }
 
     @Test
@@ -202,7 +250,35 @@ class PublicCatalogIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Browse poems by 2 poets")))
                 .andExpect(content().string(containsString("Still I Rise")))
-                .andExpect(content().string(containsString("Old &lt;Verse&gt;")));
+                .andExpect(content().string(containsString("Old &lt;Verse&gt;")))
+                .andExpect(content()
+                        .string(containsString(
+                                "<meta property=\"og:image\" content=\"http://localhost:5173/share.png\">")))
+                .andExpect(content().string(containsString("href=\"http://localhost:5173/sign-in?join=1\"")));
+    }
+
+    @Test
+    void landingPageListsPoemsPublishedThisWeekSeparately() throws Exception {
+        // The 1999 poem was added today too, but it counts by its original date.
+        String page = mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String thisWeek =
+                page.substring(page.indexOf("New this week"), page.indexOf("Recently added to the collection"));
+        assertThat(thisWeek).contains("Still I Rise", "Road").doesNotContain("Old &lt;Verse&gt;");
+        assertThat(page.substring(page.indexOf("Recently added to the collection")))
+                .contains("Old &lt;Verse&gt;")
+                .doesNotContain("Still I Rise");
+
+        jdbc.update("update poem set created_at = now() - interval '8 days'");
+        mockMvc.perform(get("/")).andExpect(content().string(not(containsString("New this week"))));
+    }
+
+    @Test
+    void robotsKeepsCrawlersOffTheRandomPoemRedirect() throws Exception {
+        mockMvc.perform(get("/robots.txt")).andExpect(content().string(containsString("Disallow: /poems/random")));
     }
 
     @Test

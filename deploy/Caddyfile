@@ -67,6 +67,11 @@
         reverse_proxy app:8080
     }
 
+    # The site's default preview image for shared links (og:image).
+    handle /share.png {
+        reverse_proxy app:8080
+    }
+
     # The public root is server-rendered so search engines receive meaningful
     # content without needing to execute the React application.
     handle / {

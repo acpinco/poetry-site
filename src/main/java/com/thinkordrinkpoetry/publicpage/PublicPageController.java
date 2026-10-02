@@ -3,12 +3,15 @@ package com.thinkordrinkpoetry.publicpage;
 import com.thinkordrinkpoetry.discovery.PoemCatalog;
 import com.thinkordrinkpoetry.discovery.PoemCatalog.PoemDetail;
 import com.thinkordrinkpoetry.discovery.PoemCatalog.PoetSummary;
+import com.thinkordrinkpoetry.discovery.PoemCatalog.RecentPoemSummary;
 import com.thinkordrinkpoetry.discovery.PoemCatalog.SitemapItem;
 import com.thinkordrinkpoetry.discovery.PoemOfTheDayService;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -55,9 +58,18 @@ public class PublicPageController {
                         "Discover original poems and poets at Think or Drink Poetry.",
                         links.site() + "/",
                         "website",
+                        links.siteImage(),
                         website));
+        List<RecentPoemSummary> newThisWeek = catalog.publishedThisWeek(LANDING_POEM_COUNT);
+        Set<UUID> shown = newThisWeek.stream().map(RecentPoemSummary::poemId).collect(Collectors.toSet());
         model.addAttribute("poetCount", catalog.publishedPoetCount());
-        model.addAttribute("poems", catalog.recentlyPublished(LANDING_POEM_COUNT));
+        model.addAttribute("newThisWeek", newThisWeek);
+        model.addAttribute(
+                "poems",
+                catalog.recentlyPublished(LANDING_POEM_COUNT + newThisWeek.size()).stream()
+                        .filter(poem -> !shown.contains(poem.poemId()))
+                        .limit(LANDING_POEM_COUNT)
+                        .toList());
         return page(model, "landing");
     }
 
@@ -74,10 +86,20 @@ public class PublicPageController {
                         poem.poem(),
                         canonical,
                         "article",
+                        links.poemImage(poem.poemId()),
                         poemSchema(poem, canonical)));
         model.addAttribute("poem", poem);
         model.addAttribute("publishedOn", publishedOn(poem));
         return page(model, "poem");
+    }
+
+    /** "Read another poem": a redirect, so the link itself stays the same on every page load. */
+    @GetMapping("/poems/random")
+    public String randomPoem(@RequestParam(name = "from", required = false) UUID currentPoemId) {
+        return "redirect:"
+                + catalog.randomPoem(currentPoemId)
+                        .map(poem -> links.poem(poem.poemId(), poem.title()))
+                        .orElse(links.home());
     }
 
     @GetMapping(value = "/poem-of-the-day", produces = MediaType.TEXT_HTML_VALUE)
@@ -95,6 +117,7 @@ public class PublicPageController {
                         "Today’s featured poem: " + poem.title() + " by " + poem.poetDisplayName() + ".",
                         canonical,
                         "article",
+                        links.poemImage(poem.poemId()),
                         poemSchema(poem, canonical)));
         model.addAttribute("poem", poem);
         return page(model, "poem-of-the-day");
@@ -113,6 +136,7 @@ public class PublicPageController {
                         hasBio(poet) ? poet.bio() : "Read poems by " + poet.displayName() + ".",
                         canonical,
                         "profile",
+                        links.poetImage(poet.poetId()),
                         personSchema(poet, canonical)));
         model.addAttribute("poet", poet);
         model.addAttribute("hasBio", hasBio(poet));
@@ -131,7 +155,14 @@ public class PublicPageController {
         String canonical = links.poetBio(poet.poetId(), poet.displayName());
         String bio = hasBio(poet) ? poet.bio() : poet.displayName() + " has not added a biography yet.";
         model.addAttribute(
-                "meta", meta(poet.displayName() + " bio", bio, canonical, "profile", personSchema(poet, canonical)));
+                "meta",
+                meta(
+                        poet.displayName() + " bio",
+                        bio,
+                        canonical,
+                        "profile",
+                        links.poetImage(poet.poetId()),
+                        personSchema(poet, canonical)));
         model.addAttribute("poet", poet);
         model.addAttribute("bio", bio);
         model.addAttribute("returnToPoemId", returnToPoemId);
@@ -166,18 +197,21 @@ public class PublicPageController {
                 Disallow: /api/
                 Disallow: /swagger-ui
                 Disallow: /v3/
+                Disallow: /poems/random
 
                 User-agent: OAI-SearchBot
                 Allow: /
                 Disallow: /api/
                 Disallow: /swagger-ui
                 Disallow: /v3/
+                Disallow: /poems/random
 
                 User-agent: Google-Extended
                 Allow: /
                 Disallow: /api/
                 Disallow: /swagger-ui
                 Disallow: /v3/
+                Disallow: /poems/random
 
                 User-agent: GPTBot
                 Disallow: /
@@ -204,13 +238,14 @@ public class PublicPageController {
             String description,
             String canonicalUrl,
             String openGraphType,
+            String imageUrl,
             Map<String, Object> structuredData) {
         // Embedded in a <script> element, so "<" must never appear literally (it could close the tag).
         String jsonLd = json.writeValueAsString(structuredData)
                 .replace("<", "\\u003c")
                 .replace(">", "\\u003e")
                 .replace("&", "\\u0026");
-        return new PageMeta(title, summary(description), canonicalUrl, openGraphType, jsonLd);
+        return new PageMeta(title, summary(description), canonicalUrl, openGraphType, imageUrl, jsonLd);
     }
 
     private Map<String, Object> poemSchema(PoemDetail poem, String canonical) {
@@ -255,7 +290,12 @@ public class PublicPageController {
 
     /** Page-level metadata rendered into the shared layout's head. */
     public record PageMeta(
-            String title, String description, String canonicalUrl, String openGraphType, String structuredData) {}
+            String title,
+            String description,
+            String canonicalUrl,
+            String openGraphType,
+            String imageUrl,
+            String structuredData) {}
 
     private record SitemapUrl(String location, LocalDate lastModified) {
         String toXml() {

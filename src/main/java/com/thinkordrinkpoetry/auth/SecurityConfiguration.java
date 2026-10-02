@@ -22,7 +22,7 @@ class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/", "/poem-of-the-day").permitAll()
+                        .requestMatchers("/", "/poem-of-the-day", "/share.png").permitAll()
                         .requestMatchers("/poems/**", "/poets/**", "/sitemap.xml", "/robots.txt").permitAll()
                         .requestMatchers("/api/auth/magic-links", "/api/auth/magic-links/**").permitAll()
                         .requestMatchers("/api/auth/sign-up", "/api/auth/sign-up/**").permitAll()

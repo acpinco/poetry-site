@@ -133,6 +133,22 @@ public class PoemCatalog {
                 "select * from poem_listing order by published_at desc, poem_id desc limit ?", RECENT_POEM, limit);
     }
 
+    /** Poems published in the last seven days, newest first; 1999 poems keep their original date. */
+    public List<RecentPoemSummary> publishedThisWeek(int limit) {
+        return jdbc.query("""
+                select * from poem_listing where published_at >= now() - interval '7 days'
+                order by published_at desc, poem_id desc limit ?
+                """, RECENT_POEM, limit);
+    }
+
+    /** Any poem except {@code excluding}, so "read another poem" never repeats the current one. */
+    public Optional<PoemDetail> randomPoem(UUID excluding) {
+        return first(jdbc.query(
+                "select * from poem_listing where poem_id is distinct from ? order by random() limit 1",
+                POEM_DETAIL,
+                excluding));
+    }
+
     public List<PoemSearchResult> searchPoems(String query) {
         String pattern = containsPattern(query);
         return jdbc.query("""

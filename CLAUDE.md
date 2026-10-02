@@ -36,7 +36,8 @@ Operational commands (deploy, backups, restore, psql) live in `docs/COMMANDS.txt
 
 The backend serves two kinds of pages, and `deploy/Caddyfile` (production) and the proxy in `frontend/vite.config.ts` (dev) must route the same paths:
 
-- **Backend, server-rendered for SEO** (Thymeleaf, `publicpage/PublicPageController`, templates in `src/main/resources/templates/public/`): `/`, `/poems/{id}/{slug}`, `/poets/{id}/{slug}[/bio]`, `/poem-of-the-day`, `/sitemap.xml`, `/robots.txt`. Slugs are decorative; lookups are by id, URLs come from `PublicLinks`.
+- **Backend, server-rendered for SEO** (Thymeleaf, `publicpage/PublicPageController`, templates in `src/main/resources/templates/public/`): `/`, `/poems/{id}/{slug}`, `/poets/{id}/{slug}[/bio]`, `/poem-of-the-day`, `/sitemap.xml`, `/robots.txt`, `/poems/random` (redirect for "Read another poem"). Slugs are decorative; lookups are by id, URLs come from `PublicLinks`.
+- **Backend, share-preview images** (`og:image`, `publicpage/ShareImageController` + `ShareImageRenderer`, fonts bundled in `src/main/resources/fonts`): `/share.png`, `/poems/{id}/share.png`, `/poets/{id}/share.png`, cached publicly for a day.
 - **Backend JSON API**: `/api/**`, plus Swagger (`/swagger-ui*`, `/v3/*`, public by design).
 - **React SPA** (`frontend/src/App.tsx` routes): `/home`, `/sign-in`, `/account/setup`, `/my-poems/new`, `/my-poems/:id/edit`, `/contact`, `/admin`. Adding an SPA route also means adding it to the Caddyfile `@spa` matcher.
 

@@ -10,5 +10,6 @@
 <li th:each="poem : ${poems}"><a th:href="${links.poem(poem.poemId, poem.title)}" th:text="${poem.title}"></a></li>
 </ul>
 </article>
+<th:block th:replace="~{public/invite :: invite}"></th:block>
 </th:block>
 </html>

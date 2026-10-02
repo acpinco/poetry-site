@@ -21,6 +21,7 @@ export default defineConfig({
       "/poets": apiProxyTarget,
       "/sitemap.xml": apiProxyTarget,
       "/robots.txt": apiProxyTarget,
+      "/share.png": apiProxyTarget,
     },
   },
 });
