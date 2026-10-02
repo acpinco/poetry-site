@@ -24,6 +24,10 @@ spring:
           auth: ${MAIL_SMTP_AUTH:false}
           starttls:
             enable: ${MAIL_STARTTLS_ENABLED:false}
+          # JavaMail waits forever by default; a hung SMTP server would pin a mail thread.
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 server:
   port: ${SERVER_PORT:8080}
@@ -43,7 +47,8 @@ app:
   mail:
     from: ${MAIL_FROM:Think or Drink Poetry <noreply@localhost>}
   contact:
-    to: ${CONTACT_EMAIL:timberlinelab@gmail.com}
+    # Required: where Contact page messages are delivered.
+    to: ${CONTACT_EMAIL}
   auth:
     magic-link-base-url: ${MAGIC_LINK_BASE_URL:http://localhost:8080}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
@@ -59,4 +64,5 @@ app:
     session-cookie-name: poetry_session
     secure-session-cookie: ${SECURE_SESSION_COOKIE:false}
     admin-email: ${ADMIN_EMAIL:}
-    admin-contact-email: ${ADMIN_CONTACT_EMAIL:timberlinelab@gmail.com}
+    # Required: the address locked-out poets are told to contact.
+    admin-contact-email: ${ADMIN_CONTACT_EMAIL}

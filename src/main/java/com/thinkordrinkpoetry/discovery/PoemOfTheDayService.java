@@ -21,12 +21,17 @@ public class PoemOfTheDayService {
 
     @Transactional
     public UUID poemIdForToday() {
-        // The advisory lock makes simultaneous first visits at midnight choose one poem,
-        // rather than creating competing assignments for the same day.
-        jdbc.execute("select pg_advisory_xact_lock(" + DAILY_ASSIGNMENT_LOCK + ")");
-
         LocalDate today = LocalDate.now(SITE_TIME_ZONE);
         UUID assigned = assignedPoem(today);
+        if (assigned != null) {
+            return assigned;
+        }
+
+        // Only the first visit of the day gets here. The advisory lock makes simultaneous first
+        // visits at midnight choose one poem rather than competing assignments for the same day.
+        jdbc.execute("select pg_advisory_xact_lock(" + DAILY_ASSIGNMENT_LOCK + ")");
+        // Another visit may have assigned today's poem while this one waited for the lock.
+        assigned = assignedPoem(today);
         if (assigned != null) {
             return assigned;
         }

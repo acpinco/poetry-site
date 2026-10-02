@@ -48,8 +48,10 @@ public class AuthService {
      * Sign-in: only addresses that already belong to a poet receive email. Unknown addresses get the
      * same response with nothing sent, so the form neither spams strangers nor reveals who has an
      * account.
+     *
+     * <p>Deliberately not transactional: the only write is a single token insert, and holding a database
+     * connection while calling Cloudflare or queueing email would let slow requests exhaust the pool.
      */
-    @Transactional
     void requestMagicLink(String submittedEmail, String clientIp) {
         String email = emailAddressNormalizer.normalize(submittedEmail);
         rateLimiter.checkClient(clientIp);
@@ -64,7 +66,6 @@ public class AuthService {
      * Sign-up: any address may receive a link, but only after a Turnstile challenge proves a person
      * submitted the form. An address that already has an account simply receives a sign-in link.
      */
-    @Transactional
     void requestSignUp(String submittedEmail, String turnstileToken, String clientIp) {
         String email = emailAddressNormalizer.normalize(submittedEmail);
         rateLimiter.checkClient(clientIp);

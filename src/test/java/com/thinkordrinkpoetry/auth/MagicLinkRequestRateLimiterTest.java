@@ -23,7 +23,7 @@ class MagicLinkRequestRateLimiterTest {
                     "poetry_session",
                     false,
                     "",
-                    "timberlinelab@gmail.com",
+                    "support@example.test",
                     3,
                     4,
                     "",

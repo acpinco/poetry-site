@@ -2,15 +2,24 @@ package com.thinkordrinkpoetry.auth;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+/**
+ * Sends sign-in email in the background so a slow or unavailable SMTP server never delays or fails
+ * the sign-in request. Delivery failures are logged; the visitor can simply request another link.
+ */
 @Component
 class MagicLinkMailer {
+    private static final Logger log = LoggerFactory.getLogger(MagicLinkMailer.class);
+
     private final JavaMailSender mailSender;
     private final String from;
 
@@ -19,6 +28,7 @@ class MagicLinkMailer {
         this.from = from;
     }
 
+    @Async
     void send(String email, String url) {
         String plainText = "Use this link to sign in. It expires in 15 minutes:\n\n" + url;
         String html = emailPage("Your sign-in link is ready", "Use the button below to enter Think or Drink Poetry. It expires in 15 minutes.")
@@ -28,6 +38,7 @@ class MagicLinkMailer {
         send(email, "Your Think or Drink Poetry sign-in link", plainText, html);
     }
 
+    @Async
     void sendAccountNotice(String email, String subject, String text) {
         send(email, subject, text, emailPage(subject, text) + emailFooter());
     }
@@ -43,7 +54,7 @@ class MagicLinkMailer {
             helper.addInline("raven-logo", new ClassPathResource("email/raven-logo.png"), "image/png");
             mailSender.send(message);
         } catch (MessagingException | MailException exception) {
-            throw new IllegalStateException("Unable to send the sign-in email.", exception);
+            log.error("Unable to send \"{}\" email.", subject, exception);
         }
     }
 

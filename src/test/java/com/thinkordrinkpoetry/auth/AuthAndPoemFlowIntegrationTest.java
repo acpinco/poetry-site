@@ -4,7 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -79,7 +80,7 @@ class AuthAndPoemFlowIntegrationTest {
                                 """))
                 .andExpect(status().isNoContent());
 
-        verify(magicLinkMailer, never()).send(any(), any());
+        verify(magicLinkMailer, after(500).never()).send(any(), any());
     }
 
     @Test
@@ -93,7 +94,7 @@ class AuthAndPoemFlowIntegrationTest {
                                 """))
                 .andExpect(status().isNoContent());
 
-        verify(magicLinkMailer, times(2)).send(eq("returning@example.com"), any());
+        verify(magicLinkMailer, timeout(5000).times(2)).send(eq("returning@example.com"), any());
     }
 
     @Test
@@ -107,7 +108,7 @@ class AuthAndPoemFlowIntegrationTest {
                                 """))
                 .andExpect(status().isBadRequest());
 
-        verify(magicLinkMailer, never()).send(any(), any());
+        verify(magicLinkMailer, after(500).never()).send(any(), any());
     }
 
     @Test
@@ -121,7 +122,7 @@ class AuthAndPoemFlowIntegrationTest {
                     .andExpect(status().isNoContent());
         }
 
-        verify(magicLinkMailer, times(5)).send(eq("flooded@example.com"), any());
+        verify(magicLinkMailer, timeout(5000).times(5)).send(eq("flooded@example.com"), any());
     }
 
     @Test
@@ -314,6 +315,13 @@ class AuthAndPoemFlowIntegrationTest {
         mockMvc.perform(get("/poem-of-the-day"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Poem of the Day")));
+        String firstPick = mockMvc.perform(get("/api/discovery/poem-of-the-day"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        mockMvc.perform(get("/api/discovery/poem-of-the-day"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.poemId").value(
+                        (String) com.jayway.jsonpath.JsonPath.read(firstPick, "$.poemId")));
         mockMvc.perform(get("/sitemap.xml"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/poem-of-the-day")));
@@ -374,7 +382,7 @@ class AuthAndPoemFlowIntegrationTest {
                                 {"email":"%s"}
                                 """.formatted(email)))
                 .andExpect(status().isNoContent());
-        verify(magicLinkMailer, times(2)).send(eq(email), magicLink.capture());
+        verify(magicLinkMailer, timeout(5000).times(2)).send(eq(email), magicLink.capture());
 
         String token = new URI(magicLink.getValue()).getPath().replaceFirst(".*/", "");
         MvcResult login = mockMvc.perform(get("/api/auth/magic-links/{token}", token))
@@ -393,7 +401,7 @@ class AuthAndPoemFlowIntegrationTest {
                                 {"email":"%s","turnstileToken":"token"}
                                 """.formatted(email)))
                 .andExpect(status().isNoContent());
-        verify(magicLinkMailer).send(eq(email), magicLink.capture());
+        verify(magicLinkMailer, timeout(5000)).send(eq(email), magicLink.capture());
 
         String token = new URI(magicLink.getValue()).getPath().replaceFirst(".*/", "");
         MvcResult login = mockMvc.perform(get("/api/auth/magic-links/{token}", token))
