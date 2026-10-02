@@ -187,9 +187,33 @@ sudo systemctl restart cloudflared
 POSTGRESQL BACKUPS
 ------------------
 
-Description: Run the production PostgreSQL backup manually after creating the server-only /etc/poetry-site-backup.env configuration. It writes a consistent custom-format PostgreSQL archive, validates it, and retains the latest 31 days locally. This is not off-server disaster recovery.
+Description: Create the server-only backup configuration from the template. It already holds the right owner and SSD directory for this server, plus the optional USB_BACKUP_MOUNT for the second copy.
+
+sudo install -m 600 -o root -g root deploy/poetry-site-backup.env.example /etc/poetry-site-backup.env
+
+---------
+
+Description: Mount the "Poetry DB Backup" USB stick (ext4) permanently at /mnt/poetry-backup so root's backup job can reach it without a desktop login. Add this line to /etc/fstab with "sudo nano /etc/fstab". nofail keeps the laptop booting when the stick is unplugged. A different stick needs its own UUID from "lsblk -o NAME,SIZE,FSTYPE,LABEL,UUID,MOUNTPOINTS".
+
+UUID=cad3fbf5-8f23-45d1-9c00-01c94fb94c8d  /mnt/poetry-backup  ext4  defaults,nofail,x-systemd.device-timeout=5s  0  2
+
+---------
+
+Description: Apply the fstab entry and confirm the stick is mounted and writable by the remote user.
+
+sudo mkdir -p /mnt/poetry-backup && sudo systemctl daemon-reload && sudo mount -a && sudo chown remote:remote /mnt/poetry-backup && findmnt /mnt/poetry-backup
+
+---------
+
+Description: Run the production PostgreSQL backup manually. It writes a consistent custom-format PostgreSQL archive, validates it, and retains the latest 31 days on the SSD. When USB_BACKUP_MOUNT is set it also copies the archive to the USB stick and verifies the checksum there; if the stick is not mounted the SSD backup still completes but the command exits with "USB COPY FAILED". This is not off-site disaster recovery: both copies live with the laptop.
 
 sudo ./scripts/backup-production-db.sh
+
+---------
+
+Description: Verify every archive on the USB stick still matches its checksum.
+
+cd /mnt/poetry-backup/poetry-site && sha256sum --check *.sha256
 
 ---------
 
@@ -202,6 +226,10 @@ sudo ./scripts/restore-production-db.sh --confirm-replace-live-database /home/re
 Description: Edit the root user's cron schedule in Vim. Add the documented daily 3:15 AM backup line after the backup succeeds manually. Root is used because the server's Docker commands require elevated privileges.
 
 sudo env EDITOR=vim crontab -e
+
+Add this line to run the backup daily at 3:15 AM and keep a log:
+
+15 3 * * * /home/remote/projects/poetry-site/scripts/backup-production-db.sh >> /var/log/poetry-site-backup.log 2>&1
 
 ---------
 
