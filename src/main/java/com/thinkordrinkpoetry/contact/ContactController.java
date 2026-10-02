@@ -29,7 +29,7 @@ public class ContactController {
     @PostMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void send(@AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody ContactRequest request) {
-        if (user == null || user.poetId() == null) {
+        if (user.poetId() == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Create a poet profile before sending a message.");
         }
         Poet poet = poets.findById(user.poetId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

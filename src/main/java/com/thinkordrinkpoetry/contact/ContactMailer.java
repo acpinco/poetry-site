@@ -23,7 +23,7 @@ class ContactMailer {
     }
 
     void send(Poet poet, String message) {
-        String fullName = poet.getFullName() == null ? poet.getFirstName() + " " + poet.getLastName() : poet.getFullName();
+        String fullName = poet.getFullName();
         String penName = poet.getPenName() == null || poet.getPenName().isBlank() ? fullName : poet.getPenName();
         String text = "A signed-in poet sent a message to The Raven's Nest.\n\n"
                 + "Full name: " + fullName + "\n"
