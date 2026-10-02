@@ -1,0 +1,12 @@
+<!doctype html>
+<html th:replace="~{public/layout :: page(~{::content})}" xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="content">
+<article>
+<p class="byline">Poem of the Day</p>
+<h1 th:text="${poem.title}"></h1>
+<p class="byline" th:text="|By ${poem.poetDisplayName}|"></p>
+<div class="poem" th:text="${poem.poem}"></div>
+<p><a th:href="${links.poem(poem.poemId, poem.title)}">Open this poem’s permanent page</a></p>
+</article>
+</th:block>
+</html>

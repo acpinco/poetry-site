@@ -1,0 +1,22 @@
+<!doctype html>
+<html th:replace="~{public/layout :: page(~{::content})}" xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="content">
+<header class="hero">
+<p class="eyebrow">Think or Drink Poetry</p>
+<h1>Original poems, shared in shadow and light.</h1>
+<p>Discover a living collection of original poetry from independent voices. Read a poem, find a poet, and return whenever a line stays with you.</p>
+<p class="actions"><a class="button" th:href="${links.home()}">Explore the poetry</a><a class="button secondary" th:href="${links.signIn()}">Sign in</a></p>
+</header>
+<section>
+<h2>A library of poets</h2>
+<p th:text="|Browse poems by ${poetCount} poets, search by title or phrase, and follow each poet’s work.|"></p>
+</section>
+<section>
+<h2>Recently added to the collection</h2>
+<ul>
+<li th:each="poem : ${poems}"><a th:href="${links.poem(poem.poemId, poem.title)}" th:text="${poem.title}"></a> <span th:text="|by ${poem.poetDisplayName}|"></span></li>
+</ul>
+<p><a th:href="${links.home()}">Browse all poets and poems →</a></p>
+</section>
+</th:block>
+</html>

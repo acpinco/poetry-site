@@ -1,0 +1,39 @@
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(content)">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title th:text="${meta.title} + ' | Think or Drink Poetry'">Think or Drink Poetry</title>
+<meta name="description" th:content="${meta.description}">
+<link rel="canonical" th:href="${meta.canonicalUrl}">
+<meta property="og:type" th:content="${meta.openGraphType}">
+<meta property="og:site_name" content="Think or Drink Poetry">
+<meta property="og:title" th:content="${meta.title}">
+<meta property="og:description" th:content="${meta.description}">
+<meta property="og:url" th:content="${meta.canonicalUrl}">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json" th:utext="${meta.structuredData}"></script>
+<style>
+body{margin:0;background:#080a0f;color:#e4ddd0;font:18px/1.7 Georgia,serif}
+main{max-width:760px;margin:auto;padding:48px 24px}
+a{color:#d2b254}
+h1,h2{line-height:1.2}
+.byline,.date,.eyebrow,.back{font:12px/1.4 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#c9a84c}
+.date{color:#9896a1}
+.poem,.bio{white-space:pre-wrap;font-style:italic}
+li{margin:.5rem 0}
+.hero{padding:3rem 0}
+.hero h1{font-size:clamp(2.3rem,8vw,4.5rem)}
+.actions{display:flex;gap:1rem;flex-wrap:wrap}
+.button{display:inline-block;border:1px solid #d2b254;padding:.7rem 1rem;text-decoration:none}
+.secondary{border-color:#575060;color:#e4ddd0}
+section{border-top:1px solid #292536;padding:1.5rem 0}
+li span{color:#a7a1af;font-size:.85em}
+</style>
+</head>
+<body>
+<main>
+<p><a th:href="${links.site()}">Think or Drink Poetry</a></p>
+<th:block th:replace="${content}"></th:block>
+</main>
+</body>
+</html>

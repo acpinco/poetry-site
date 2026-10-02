@@ -1,0 +1,12 @@
+<!doctype html>
+<html th:replace="~{public/layout :: page(~{::content})}" xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="content">
+<article>
+<p><a class="back" th:href="${links.homeAt(returnToPoemId)}">← Back to poems</a></p>
+<p class="byline">Poet bio</p>
+<h1 th:text="${poet.displayName}"></h1>
+<div class="bio" th:text="${bio}"></div>
+<p><a th:href="${links.poet(poet.poetId, poet.displayName)}" th:text="|Read poems by ${poet.displayName}|"></a></p>
+</article>
+</th:block>
+</html>

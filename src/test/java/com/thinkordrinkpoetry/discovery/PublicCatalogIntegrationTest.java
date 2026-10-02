@@ -151,7 +151,10 @@ class PublicCatalogIntegrationTest {
     void poemPageIsEscapedAndCanonical() throws Exception {
         mockMvc.perform(get("/poems/{id}/any-slug", legacyPoem))
                 .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.startsWith("<!doctype html>")))
                 .andExpect(content().string(containsString("Old &lt;Verse&gt; by Caged Bird | Think or Drink Poetry")))
+                .andExpect(content().string(containsString(
+                        "\"author\":{\"@type\":\"Person\",\"name\":\"Caged Bird\"}")))
                 .andExpect(content().string(containsString(
                         "<link rel=\"canonical\" href=\"http://localhost:5173/poems/" + legacyPoem + "/old-verse\">")))
                 .andExpect(content().string(containsString("A poem by Caged Bird")))

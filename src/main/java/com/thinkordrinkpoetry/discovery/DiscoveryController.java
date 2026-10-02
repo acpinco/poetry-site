@@ -1,15 +1,18 @@
 package com.thinkordrinkpoetry.discovery;
 
+import com.thinkordrinkpoetry.discovery.PoemCatalog.PoemDetail;
+import com.thinkordrinkpoetry.discovery.PoemCatalog.PoemSearchResult;
+import com.thinkordrinkpoetry.discovery.PoemCatalog.PoemSummary;
+import com.thinkordrinkpoetry.discovery.PoemCatalog.PoetSummary;
+import com.thinkordrinkpoetry.discovery.PoemCatalog.RecentPoemSummary;
 import com.thinkordrinkpoetry.web.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,33 +23,28 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/discovery")
 public class DiscoveryController {
-    private final JdbcTemplate jdbc;
+    private final PoemCatalog catalog;
     private final PublicDiscoveryRateLimiter limiter;
     private final PoemOfTheDayService poemOfTheDay;
     private final ClientIpResolver clientIps;
 
-    public DiscoveryController(JdbcTemplate jdbc, PublicDiscoveryRateLimiter limiter, PoemOfTheDayService poemOfTheDay,
-            ClientIpResolver clientIps) {
-        this.jdbc = jdbc;
+    public DiscoveryController(PoemCatalog catalog, PublicDiscoveryRateLimiter limiter,
+            PoemOfTheDayService poemOfTheDay, ClientIpResolver clientIps) {
+        this.catalog = catalog;
         this.limiter = limiter;
         this.poemOfTheDay = poemOfTheDay;
         this.clientIps = clientIps;
     }
 
+    /** Fallback landing data for when no Poem of the Day can be assigned yet. */
     @GetMapping("/home")
     public HomeResponse home(HttpServletRequest request) {
         limiter.check(clientIps.resolve(request), false);
-        PoetSummary poet = jdbc.query("""
-                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, count(po.id)
-                from poet p join poem po on po.poet_id = p.id
-                group by p.id, p.pen_name, p.full_name, p.bio order by random() limit 1
-                """, rs -> rs.next() ? new PoetSummary(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3), rs.getInt(4)) : null);
-        if (poet == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No poems are available yet.");
-        List<PoemSummary> poems = poemsFor(poet.poetId());
+        PoetSummary poet = catalog.randomPublishedPoet().orElseThrow(DiscoveryController::noPoemsYet);
+        List<PoemSummary> poems = catalog.poemsByPoet(poet.poetId());
         // The random selection belongs exclusively to the persistent Poem of the Day.
         // The center reader starts with this poet's newest poem instead.
-        PoemSummary selected = poems.getFirst();
-        return new HomeResponse(poet, poems, poem(selected.poemId()));
+        return new HomeResponse(poet, poems, poem(poems.getFirst().poemId()));
     }
 
     @GetMapping("/poem-of-the-day")
@@ -54,7 +52,7 @@ public class DiscoveryController {
         limiter.check(clientIps.resolve(request), false);
         UUID poemId = poemOfTheDay.poemIdForToday();
         if (poemId == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No poems are available yet.");
+            throw noPoemsYet();
         }
         return poem(poemId);
     }
@@ -65,91 +63,51 @@ public class DiscoveryController {
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             HttpServletRequest request) {
         limiter.check(clientIps.resolve(request), false);
-        List<RecentPoemSummary> results = jdbc.query("""
-                select po.id, po.poet_id, po.title, coalesce(nullif(p.pen_name, ''), p.full_name),
-                       left(regexp_replace(po.poem, '\\s+', ' ', 'g'), 160), po.legacy_submitted_on, po.created_at
-                from poem po join poet p on p.id = po.poet_id
-                order by po.created_at desc, po.id desc
-                limit ? offset ?
-                """, (rs, row) -> new RecentPoemSummary(UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)),
-                rs.getString(3), rs.getString(4), rs.getString(5), submittedOrCreatedAt(rs, 6, 7)), limit + 1, offset);
-        boolean hasMore = results.size() > limit;
-        return new RecentPoemsResponse(hasMore ? results.subList(0, limit) : results, hasMore);
+        // Fetch one extra row to learn whether another page exists.
+        List<RecentPoemSummary> poems = catalog.recentlyAdded(limit + 1, offset);
+        boolean hasMore = poems.size() > limit;
+        return new RecentPoemsResponse(hasMore ? poems.subList(0, limit) : poems, hasMore);
     }
 
     @GetMapping("/poets/{poetId}/poems")
     public PoetPoemsResponse poemsByPoet(@PathVariable UUID poetId, HttpServletRequest request) {
         limiter.check(clientIps.resolve(request), false);
-        PoetSummary poet = poet(poetId);
-        return new PoetPoemsResponse(poet, poemsFor(poetId));
+        PoetSummary poet = catalog.poet(poetId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Poet not found."));
+        return new PoetPoemsResponse(poet, catalog.poemsByPoet(poetId));
     }
 
     @GetMapping("/poets")
     public List<PoetSummary> poets(HttpServletRequest request) {
         limiter.check(clientIps.resolve(request), false);
-        return jdbc.query("""
-                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, count(po.id)
-                from poet p join poem po on po.poet_id = p.id
-                group by p.id, p.pen_name, p.full_name, p.bio
-                order by lower(coalesce(nullif(p.pen_name, ''), p.full_name)), p.id
-                """, (rs, row) -> new PoetSummary(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3), rs.getInt(4)));
+        return catalog.publishedPoets();
     }
 
     @GetMapping("/poems/{poemId}")
-    public PoemDetail poem(@PathVariable UUID poemId, HttpServletRequest request) { limiter.check(clientIps.resolve(request), false); return poem(poemId); }
+    public PoemDetail poem(@PathVariable UUID poemId, HttpServletRequest request) {
+        limiter.check(clientIps.resolve(request), false);
+        return poem(poemId);
+    }
 
     @GetMapping("/search")
     public SearchResponse search(@RequestParam @Size(min = 2, max = 100) String q, HttpServletRequest request) {
         limiter.check(clientIps.resolve(request), true);
-        String pattern = "%" + q.trim().toLowerCase() + "%";
-        List<PoetSummary> poets = jdbc.query("""
-                select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, count(po.id)
-                from poet p join poem po on po.poet_id = p.id
-                where lower(p.full_name) like ? or lower(coalesce(p.pen_name, '')) like ?
-                group by p.id, p.pen_name, p.full_name, p.bio order by 2 limit 10
-                """, (rs, row) -> new PoetSummary(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3), rs.getInt(4)), pattern, pattern);
-        List<PoemSearchResult> poems = jdbc.query("""
-                select po.id, po.poet_id, po.title, coalesce(nullif(p.pen_name, ''), p.full_name), left(regexp_replace(po.poem, '\\s+', ' ', 'g'), 160)
-                from poem po join poet p on p.id = po.poet_id
-                where lower(po.title) like ? or lower(po.poem) like ? order by po.updated_at desc limit 10
-                """, (rs, row) -> new PoemSearchResult(UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)), rs.getString(3), rs.getString(4), rs.getString(5)), pattern, pattern);
-        return new SearchResponse(poets, poems);
+        return new SearchResponse(catalog.searchPoets(q), catalog.searchPoems(q));
     }
 
-    private PoetSummary poet(UUID id) {
-        PoetSummary result = jdbc.query("""
-            select p.id, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, count(po.id)
-            from poet p left join poem po on po.poet_id = p.id where p.id = ?
-            group by p.id, p.pen_name, p.full_name, p.bio
-            """, rs -> rs.next() ? new PoetSummary(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3), rs.getInt(4)) : null, id);
-        if (result == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Poet not found.");
-        return result;
+    private PoemDetail poem(UUID poemId) {
+        return catalog.poem(poemId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
-    private static Instant submittedOrCreatedAt(java.sql.ResultSet rs, int legacySubmittedOnColumn, int createdAtColumn)
-            throws java.sql.SQLException {
-        java.time.LocalDate legacySubmittedOn = rs.getObject(legacySubmittedOnColumn, java.time.LocalDate.class);
-        return legacySubmittedOn == null ? rs.getTimestamp(createdAtColumn).toInstant()
-                : legacySubmittedOn.atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
-    }
-    private List<PoemSummary> poemsFor(UUID poetId) { return jdbc.query("""
-            select id, title, left(regexp_replace(poem, '\\s+', ' ', 'g'), 160), legacy_submitted_on, created_at
-            from poem where poet_id = ? order by updated_at desc
-            """, (rs, row) -> new PoemSummary(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3),
-                    rs.getObject(4, java.time.LocalDate.class) == null ? rs.getTimestamp(5).toInstant()
-                            : rs.getObject(4, java.time.LocalDate.class).atStartOfDay().toInstant(java.time.ZoneOffset.UTC)), poetId); }
-    private PoemDetail poem(UUID id) { PoemDetail result = jdbc.query("""
-            select po.id, po.poet_id, po.title, po.poem, coalesce(nullif(p.pen_name, ''), p.full_name), p.bio, po.legacy_submitted_on, po.created_at
-            from poem po join poet p on p.id = po.poet_id where po.id = ?
-            """, rs -> rs.next() ? new PoemDetail(UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getObject(7, java.time.LocalDate.class) == null ? rs.getTimestamp(8).toInstant() : rs.getObject(7, java.time.LocalDate.class).atStartOfDay().toInstant(java.time.ZoneOffset.UTC)) : null, id);
-        if (result == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND); return result; }
 
-    public record PoetSummary(UUID poetId, String displayName, String bio, int poemCount) {}
-    public record PoemSummary(UUID poemId, String title, String excerpt, Instant createdAt) {}
-    public record PoemDetail(UUID poemId, UUID poetId, String title, String poem, String poetDisplayName, String poetBio, Instant createdAt) {}
-    public record RecentPoemSummary(UUID poemId, UUID poetId, String title, String poetDisplayName, String excerpt, Instant createdAt) {}
+    private static ResponseStatusException noPoemsYet() {
+        return new ResponseStatusException(HttpStatus.NOT_FOUND, "No poems are available yet.");
+    }
+
     public record RecentPoemsResponse(List<RecentPoemSummary> poems, boolean hasMore) {}
+
     public record HomeResponse(PoetSummary poet, List<PoemSummary> poems, PoemDetail selectedPoem) {}
+
     public record PoetPoemsResponse(PoetSummary poet, List<PoemSummary> poems) {}
-    public record PoemSearchResult(UUID poemId, UUID poetId, String title, String poetDisplayName, String excerpt) {}
+
     public record SearchResponse(List<PoetSummary> poets, List<PoemSearchResult> poems) {}
 }
