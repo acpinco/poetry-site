@@ -249,7 +249,10 @@ class AuthAndPoemFlowIntegrationTest {
                         .content("""
                                 {"firstName":"Bo","lastName":"Two","penName":"night owl"}
                                 """))
-                .andExpect(status().isConflict());
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value("That pen name is already taken."));
         createPoet(second, "Bo", "Two");
         mockMvc.perform(put("/api/poets/me")
                         .cookie(second)
@@ -267,6 +270,25 @@ class AuthAndPoemFlowIntegrationTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.penName").value("night owl"));
+    }
+
+    @Test
+    void invalidRequestsGetAProblemDetailsBody() throws Exception {
+        Cookie session = requestSession("invalid@example.com");
+        createPoet(session, "In", "Valid");
+
+        mockMvc.perform(post("/api/poems")
+                        .cookie(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"","poem":"Untitled"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400));
+        mockMvc.perform(get("/api/poems/{poemId}", java.util.UUID.randomUUID()).cookie(session))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test

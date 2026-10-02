@@ -4,24 +4,27 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PoemOfTheDayService {
-    private static final ZoneId SITE_TIME_ZONE = ZoneId.of("America/Denver");
     private static final long DAILY_ASSIGNMENT_LOCK = 4_538_649_217L;
 
     private final JdbcTemplate jdbc;
+    /** "Today" for the Poem of the Day, so it changes at the site's midnight rather than UTC's. */
+    private final ZoneId siteTimeZone;
 
-    public PoemOfTheDayService(JdbcTemplate jdbc) {
+    public PoemOfTheDayService(JdbcTemplate jdbc, @Value("${app.site-time-zone}") ZoneId siteTimeZone) {
         this.jdbc = jdbc;
+        this.siteTimeZone = siteTimeZone;
     }
 
     @Transactional
     public UUID poemIdForToday() {
-        LocalDate today = LocalDate.now(SITE_TIME_ZONE);
+        LocalDate today = LocalDate.now(siteTimeZone);
         UUID assigned = assignedPoem(today);
         if (assigned != null) {
             return assigned;

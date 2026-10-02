@@ -42,6 +42,8 @@ springdoc:
     enabled: ${SWAGGER_ENABLED:true}
 
 app:
+  # The Poem of the Day changes at midnight in this time zone.
+  site-time-zone: ${SITE_TIME_ZONE:America/Denver}
   # Cloudflare sets this to the real visitor IP; the app is only reachable through Cloudflare and Caddy.
   client-ip-header: ${CLIENT_IP_HEADER:CF-Connecting-IP}
   mail:
