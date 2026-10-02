@@ -17,57 +17,46 @@ type AdminPoet = {
 
 type SortKey = "name" | "email" | "status" | "joined" | "lastSeen";
 type Sort = { key: SortKey; descending: boolean };
+type PoetsPage = {
+  poets: AdminPoet[];
+  page: number;
+  size: number;
+  totalPoets: number;
+  seenLastWeek: number;
+};
 
+const PAGE_SIZE = 50;
 const STATUS_LABELS: Record<AdminPoet["accountStatus"], string> = {
   ACTIVE: "Active",
   LOCKED: "Locked",
   LEGACY_UNCLAIMED: "Unclaimed (1999)",
 };
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-function sortValue(poet: AdminPoet, key: SortKey) {
-  switch (key) {
-    case "name":
-      return poet.penName.toLowerCase();
-    case "email":
-      return poet.email;
-    case "status":
-      return STATUS_LABELS[poet.accountStatus];
-    case "joined":
-      return Date.parse(poet.createdAt);
-    case "lastSeen":
-      return poet.lastSeenAt === null ? null : Date.parse(poet.lastSeenAt);
-  }
-}
-
-function sortPoets(poets: AdminPoet[], { key, descending }: Sort) {
-  return [...poets].sort((a, b) => {
-    const left = sortValue(a, key);
-    const right = sortValue(b, key);
-    // Poets who have never been seen stay at the bottom in both directions.
-    if (left === null || right === null)
-      return left === right ? 0 : left === null ? 1 : -1;
-    const order = left < right ? -1 : left > right ? 1 : 0;
-    return descending ? -order : order;
-  });
-}
-
-/** Site admins' list of poets, sortable by when each was last seen. */
+/**
+ * Site admins' list of poets. The server sorts and pages it, so the page stays
+ * quick however many poets join.
+ */
 export default function AdminPage() {
+  const [sort, setSort] = useState<Sort>({ key: "lastSeen", descending: true });
+  const [page, setPage] = useState(0);
   // loadedAt pins "now" for the relative times, keeping rendering pure.
   const [loaded, setLoaded] = useState<{
-    poets: AdminPoet[];
+    result: PoetsPage;
     loadedAt: Date;
   } | null>(null);
   const [error, setError] = useState("");
-  const [sort, setSort] = useState<Sort>({ key: "lastSeen", descending: true });
-  const poets = loaded?.poets ?? null;
 
   useEffect(() => {
     let cancelled = false;
-    getJson<AdminPoet[]>("/api/admin/poets")
-      .then((value) => {
-        if (!cancelled) setLoaded({ poets: value, loadedAt: new Date() });
+    const query = new URLSearchParams({
+      sort: sort.key,
+      direction: sort.descending ? "desc" : "asc",
+      page: String(page),
+      size: String(PAGE_SIZE),
+    });
+    getJson<PoetsPage>(`/api/admin/poets?${query}`)
+      .then((result) => {
+        if (!cancelled) setLoaded({ result, loadedAt: new Date() });
       })
       .catch((reason) => {
         if (cancelled) return;
@@ -80,9 +69,10 @@ export default function AdminPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sort.key, sort.descending, page]);
 
   function sortBy(key: SortKey) {
+    setPage(0);
     setSort((current) =>
       current.key === key
         ? { key, descending: !current.descending }
@@ -91,15 +81,9 @@ export default function AdminPage() {
     );
   }
 
-  const sorted = poets ? sortPoets(poets, sort) : [];
-  const seenThisWeek = loaded
-    ? sorted.filter(
-        (poet) =>
-          poet.lastSeenAt &&
-          loaded.loadedAt.getTime() - new Date(poet.lastSeenAt).getTime() <
-            WEEK_MS,
-      ).length
-    : 0;
+  const poets = loaded?.result.poets ?? null;
+  const totalPoets = loaded?.result.totalPoets ?? 0;
+  const pageCount = Math.max(1, Math.ceil(totalPoets / PAGE_SIZE));
 
   function header(key: SortKey, label: string) {
     const active = sort.key === key;
@@ -150,8 +134,8 @@ export default function AdminPage() {
           ) : (
             <>
               <p className="mt-2 text-center text-sm text-muted">
-                {poets.length} {poets.length === 1 ? "poet" : "poets"} ·{" "}
-                {seenThisWeek} seen in the last 7 days
+                {totalPoets} {totalPoets === 1 ? "poet" : "poets"} ·{" "}
+                {loaded!.result.seenLastWeek} seen in the last 7 days
               </p>
               <div className="mt-8 overflow-x-auto">
                 <table className="w-full min-w-[640px] border-collapse text-sm">
@@ -165,7 +149,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sorted.map((poet) => (
+                    {poets.map((poet) => (
                       <tr
                         key={poet.poetId}
                         className="border-b border-line-soft hover:bg-raised"
@@ -211,6 +195,32 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+              {pageCount > 1 && (
+                <nav
+                  aria-label="Poet list pages"
+                  className="mt-6 flex items-center justify-center gap-4 text-xs uppercase tracking-wider"
+                >
+                  <button
+                    type="button"
+                    disabled={page === 0}
+                    onClick={() => setPage((current) => current - 1)}
+                    className="border border-line-strong px-3 py-2 text-parchment hover:border-gold hover:text-gold-light disabled:opacity-40"
+                  >
+                    ← Previous
+                  </button>
+                  <span className="text-muted">
+                    Page {page + 1} of {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={page + 1 >= pageCount}
+                    onClick={() => setPage((current) => current + 1)}
+                    className="border border-line-strong px-3 py-2 text-parchment hover:border-gold hover:text-gold-light disabled:opacity-40"
+                  >
+                    Next →
+                  </button>
+                </nav>
+              )}
             </>
           )}
         </section>

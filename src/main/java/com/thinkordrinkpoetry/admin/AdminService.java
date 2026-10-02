@@ -7,8 +7,12 @@ import com.thinkordrinkpoetry.poem.PoemRepository;
 import com.thinkordrinkpoetry.poet.Poet;
 import com.thinkordrinkpoetry.poet.PoetRepository;
 import com.thinkordrinkpoetry.poet.PoetRole;
+import jakarta.persistence.EntityManager;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,24 +29,38 @@ class AdminService {
     private final UserSessionRepository sessions;
     private final AdminAuditEventRepository audit;
 
+    private final EntityManager entityManager;
+
     AdminService(PoetRepository poets, PoemRepository poems, UserSessionRepository sessions,
-            AdminAuditEventRepository audit) {
+            AdminAuditEventRepository audit, EntityManager entityManager) {
         this.poets = poets;
         this.poems = poems;
         this.sessions = sessions;
         this.audit = audit;
+        this.entityManager = entityManager;
+    }
+
+    /** One page of poets in the requested order, plus totals for the whole site. */
+    @Transactional(readOnly = true)
+    PoetPage poets(AuthenticatedUser user, PoetSort sort, boolean descending, int page, int size) {
+        requireAdmin(user);
+        // The ORDER BY comes from a fixed enum, never from request text. Never-seen poets
+        // sort last in both directions; id keeps pages stable when values tie.
+        String sql = "select * from poet order by " + sort.column + (descending ? " desc" : " asc")
+                + " nulls last, id limit :size offset :offset";
+        @SuppressWarnings("unchecked")
+        List<Poet> rows = entityManager.createNativeQuery(sql, Poet.class)
+                .setParameter("size", size)
+                .setParameter("offset", (long) page * size)
+                .getResultList();
+        Instant weekAgo = Instant.now().minus(Duration.ofDays(7));
+        return new PoetPage(rows, poets.count(), poets.countByLastSeenAtAfter(weekAgo));
     }
 
     @Transactional(readOnly = true)
-    List<Poet> poets(AuthenticatedUser user) {
+    List<Poem> poems(AuthenticatedUser user, int page, int size) {
         requireAdmin(user);
-        return poets.findAll();
-    }
-
-    @Transactional(readOnly = true)
-    List<Poem> poems(AuthenticatedUser user) {
-        requireAdmin(user);
-        return poems.findAllByOrderByUpdatedAtDesc();
+        return poems.findAllByOrderByUpdatedAtDescIdDesc(PageRequest.of(page, size));
     }
 
     @Transactional(readOnly = true)
@@ -109,4 +127,22 @@ class AdminService {
     private void record(Poet actor, String action, String targetType, UUID targetId, String reason) {
         audit.save(new AdminAuditEvent(actor.getId(), action, targetType, targetId, reason));
     }
+
+    /** Columns the admin poet list can sort by, matching what the page displays. */
+    enum PoetSort {
+        NAME("lower(coalesce(pen_name, full_name))"),
+        EMAIL("email"),
+        STATUS("account_status"),
+        // 1999 poets "joined" on their original submission date.
+        JOINED("coalesce(legacy_submitted_on::timestamptz, created_at)"),
+        LAST_SEEN("last_seen_at");
+
+        private final String column;
+
+        PoetSort(String column) {
+            this.column = column;
+        }
+    }
+
+    record PoetPage(List<Poet> poets, long totalPoets, long seenLastWeek) {}
 }

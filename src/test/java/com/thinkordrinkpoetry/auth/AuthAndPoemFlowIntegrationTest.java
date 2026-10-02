@@ -366,8 +366,8 @@ class AuthAndPoemFlowIntegrationTest {
 
         mockMvc.perform(get("/api/admin/poets").cookie(adminSession))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].poetId").value(org.hamcrest.Matchers.hasItem(targetPoetId)))
-                .andExpect(jsonPath("$[?(@.poetId == '%s')].lastSeenAt".formatted(targetPoetId))
+                .andExpect(jsonPath("$.poets[*].poetId").value(org.hamcrest.Matchers.hasItem(targetPoetId)))
+                .andExpect(jsonPath("$.poets[?(@.poetId == '%s')].lastSeenAt".formatted(targetPoetId))
                         .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.notNullValue())));
 
         mockMvc.perform(post("/api/admin/poets/{poetId}/lock", targetPoetId)
@@ -380,7 +380,7 @@ class AuthAndPoemFlowIntegrationTest {
 
         mockMvc.perform(get("/api/admin/poets").cookie(adminSession))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.poetId == '%s')].accountStatus".formatted(targetPoetId))
+                .andExpect(jsonPath("$.poets[?(@.poetId == '%s')].accountStatus".formatted(targetPoetId))
                         .value(org.hamcrest.Matchers.hasItem("LOCKED")));
         // Locking ends the target's sessions immediately.
         mockMvc.perform(get("/api/poets/me").cookie(targetSession))
@@ -389,7 +389,7 @@ class AuthAndPoemFlowIntegrationTest {
         mockMvc.perform(post("/api/admin/poets/{poetId}/unlock", targetPoetId).cookie(adminSession))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/admin/poets").cookie(adminSession))
-                .andExpect(jsonPath("$[?(@.poetId == '%s')].accountStatus".formatted(targetPoetId))
+                .andExpect(jsonPath("$.poets[?(@.poetId == '%s')].accountStatus".formatted(targetPoetId))
                         .value(org.hamcrest.Matchers.hasItem("ACTIVE")));
 
         String adminPoetId = com.jayway.jsonpath.JsonPath.read(
@@ -400,7 +400,7 @@ class AuthAndPoemFlowIntegrationTest {
         mockMvc.perform(delete("/api/admin/poets/{poetId}", targetPoetId).cookie(adminSession))
                 .andExpect(status().isNoContent());
         mockMvc.perform(get("/api/admin/poets").cookie(adminSession))
-                .andExpect(jsonPath("$[*].poetId").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(targetPoetId))));
+                .andExpect(jsonPath("$.poets[*].poetId").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(targetPoetId))));
     }
 
     private MvcResult createPoet(Cookie session, String firstName, String lastName) throws Exception {

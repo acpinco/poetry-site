@@ -12,6 +12,8 @@ public interface PoetRepository extends JpaRepository<Poet, UUID> {
     Optional<Poet> findByEmail(String email);
     long countByRole(PoetRole role);
 
+    long countByLastSeenAtAfter(Instant instant);
+
     // lower() on both sides matches the uq_poet_pen_name_ci index.
     @Query("select count(p) > 0 from Poet p where lower(p.penName) = lower(:penName)")
     boolean penNameTaken(@Param("penName") String penName);
