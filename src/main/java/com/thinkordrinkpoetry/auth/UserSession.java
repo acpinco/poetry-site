@@ -31,9 +31,6 @@ class UserSession {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
-    @Column(name = "last_used_at", nullable = false)
-    private Instant lastUsedAt;
-
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
@@ -43,15 +40,10 @@ class UserSession {
         this.authenticatedEmail = authenticatedEmail;
         this.poetId = poetId;
         this.expiresAt = expiresAt;
-        this.lastUsedAt = Instant.now();
     }
 
     void revoke(Instant instant) {
         this.revokedAt = instant;
-    }
-
-    void markUsed(Instant instant) {
-        this.lastUsedAt = instant;
     }
 
     void attachPoet(UUID poetId) {

@@ -131,7 +131,9 @@ public class PoetController {
                 poet.getBio(),
                 createdAt,
                 poet.getUpdatedAt(),
-                poet.getAccountStatus());
+                poet.getAccountStatus(),
+                poet.getRole(),
+                poet.getLastSeenAt());
     }
 
     public record PoetRequest(
@@ -150,7 +152,9 @@ public class PoetController {
             String bio,
             Instant createdAt,
             Instant updatedAt,
-            AccountStatus accountStatus) {}
+            AccountStatus accountStatus,
+            PoetRole role,
+            Instant lastSeenAt) {}
 
     private record AuthPropertiesFacade(String adminEmail) {}
 }

@@ -29,6 +29,7 @@ export default function Home({
   const [poemOfTheDay, setPoemOfTheDay] = useState<Poem | null>(null);
   const [viewer, setViewer] = useState(false);
   const [viewerPoetId, setViewerPoetId] = useState<string | null>(null);
+  const [viewerIsAdmin, setViewerIsAdmin] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [directory, setDirectory] = useState<Poet[] | null>(null);
@@ -55,9 +56,13 @@ export default function Home({
       const daily = dailyPoem.ok ? ((await dailyPoem.json()) as Poem) : null;
       setPoemOfTheDay(daily);
       if (me.ok) {
-        const session = (await me.json()) as { poetId: string | null };
+        const session = (await me.json()) as {
+          poetId: string | null;
+          admin: boolean;
+        };
         setViewer(true);
         setViewerPoetId(session.poetId);
+        setViewerIsAdmin(session.admin);
         if (preferredMyPoemId && (await choosePoem(preferredMyPoemId))) return;
         // A signed-in poet should always return to their own collection.
         if (session.poetId && !forcePublicBrowse) {
@@ -321,6 +326,7 @@ export default function Home({
         results={results}
         showingAllPoems={showingAllPoems}
         viewer={viewer}
+        viewerIsAdmin={viewerIsAdmin}
       />
 
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">

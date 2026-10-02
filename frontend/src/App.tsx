@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import ravenLogo from "./imports/Raven_Logo.png";
 import Home from "./Home";
 import PoemEditor from "./PoemEditor";
+import AdminPage from "./AdminPage";
 import ContactPage from "./ContactPage";
 import TurnstileWidget from "./TurnstileWidget";
 
@@ -44,7 +45,7 @@ export default function App() {
     () => window.location.pathname + window.location.search,
   );
   const [screen, setScreen] = useState<
-    "loading" | "login" | "profile" | "poem-editor" | "contact"
+    "loading" | "login" | "profile" | "poem-editor" | "contact" | "admin"
   >("loading");
   const [existingProfile, setExistingProfile] = useState(false);
   const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in");
@@ -72,6 +73,7 @@ export default function App() {
   const editMatch = pathname.match(/^\/my-poems\/([^/]+)\/edit$/);
   const isPoemEditor = pathname === "/my-poems/new" || editMatch !== null;
   const isContactPage = pathname === "/contact";
+  const isAdminPage = pathname === "/admin";
   const homeQuery = new URLSearchParams(queryString);
   const hasMagicLinkError = homeQuery.get("error") === "magic-link";
   const selectedMyPoemId = homeQuery.get("poem") ?? undefined;
@@ -116,6 +118,8 @@ export default function App() {
           setScreen("poem-editor");
         } else if (isContactPage) {
           setScreen("contact");
+        } else if (isAdminPage) {
+          setScreen("admin");
         } else navigate("/home");
         return;
       }
@@ -226,6 +230,7 @@ export default function App() {
   if (screen === "poem-editor")
     return <PoemEditor poemId={editMatch?.[1]} onNavigate={navigate} />;
   if (screen === "contact") return <ContactPage onNavigate={navigate} />;
+  if (screen === "admin") return <AdminPage onNavigate={navigate} />;
 
   return (
     <main
@@ -331,6 +336,20 @@ export default function App() {
                 {message && (
                   <p role="status" className="text-sm text-[#e8c97a]">
                     {message}
+                  </p>
+                )}
+                {message && authMode === "sign-in" && (
+                  <p className="text-sm text-[#8b8992]">
+                    No email after a minute? Check your spam folder, or you may
+                    need to{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchAuthMode("sign-up")}
+                      className="text-[#c9a84c] underline-offset-4 hover:underline"
+                    >
+                      create an account
+                    </button>{" "}
+                    first.
                   </p>
                 )}
                 <div

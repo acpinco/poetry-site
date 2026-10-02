@@ -27,6 +27,7 @@ type HomeHeaderProps = {
   results: SearchResults | null;
   showingAllPoems: boolean;
   viewer: boolean;
+  viewerIsAdmin: boolean;
 };
 
 export default function HomeHeader({
@@ -48,6 +49,7 @@ export default function HomeHeader({
   results,
   showingAllPoems,
   viewer,
+  viewerIsAdmin,
 }: HomeHeaderProps) {
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>(null);
   const [mobileBrowseView, setMobileBrowseView] = useState<"poets" | "poems">(
@@ -176,6 +178,7 @@ export default function HomeHeader({
             onSignOut={() => void onSignOut()}
             onOpenSwagger={openSwagger}
             viewer={viewer}
+            viewerIsAdmin={viewerIsAdmin}
           />
         )}
       </header>
@@ -224,6 +227,7 @@ export default function HomeHeader({
               }}
               onOpenSwagger={openSwagger}
               onSignOut={() => void onSignOut()}
+              viewerIsAdmin={viewerIsAdmin}
             />
           </div>
         ) : (
@@ -508,11 +512,13 @@ function MobileAccountMenu({
   onOpenSwagger,
   onSignOut,
   viewer,
+  viewerIsAdmin,
 }: {
   onNavigate: (path: string) => void;
   onOpenSwagger: () => void;
   onSignOut: () => void;
   viewer: boolean;
+  viewerIsAdmin: boolean;
 }) {
   if (!viewer) {
     return (
@@ -554,6 +560,15 @@ function MobileAccountMenu({
       >
         Contact
       </button>
+      {viewerIsAdmin && (
+        <button
+          type="button"
+          onClick={() => onNavigate("/admin")}
+          className={headerButton}
+        >
+          Admin
+        </button>
+      )}
       <button type="button" onClick={onSignOut} className={headerButton}>
         Sign Out
       </button>
@@ -567,12 +582,14 @@ function DesktopAccountMenu({
   onOpenSwagger,
   onSignOut,
   onToggle,
+  viewerIsAdmin,
 }: {
   open: boolean;
   onNavigate: (path: string) => void;
   onOpenSwagger: () => void;
   onSignOut: () => void;
   onToggle: () => void;
+  viewerIsAdmin: boolean;
 }) {
   return (
     <div className="relative">
@@ -597,6 +614,9 @@ function DesktopAccountMenu({
           <MenuButton onClick={() => onNavigate("/contact")}>
             Contact
           </MenuButton>
+          {viewerIsAdmin && (
+            <MenuButton onClick={() => onNavigate("/admin")}>Admin</MenuButton>
+          )}
           <MenuButton destructive onClick={onSignOut}>
             Sign Out
           </MenuButton>

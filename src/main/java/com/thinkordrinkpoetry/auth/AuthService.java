@@ -3,6 +3,8 @@ package com.thinkordrinkpoetry.auth;
 import com.thinkordrinkpoetry.poet.AccountStatus;
 import com.thinkordrinkpoetry.poet.Poet;
 import com.thinkordrinkpoetry.poet.PoetRepository;
+import com.thinkordrinkpoetry.poet.PoetRole;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.Optional;
@@ -13,6 +15,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AuthService {
+    /** How stale last_seen_at may get before a request refreshes it. */
+    private static final Duration LAST_SEEN_PRECISION = Duration.ofHours(1);
+
     private final AuthProperties properties;
     private final EmailAddressNormalizer emailAddressNormalizer;
     private final SecretTokenService secretTokenService;
@@ -105,6 +110,9 @@ public class AuthService {
         String sessionToken = secretTokenService.create();
         Instant sessionExpiry = now.plus(properties.sessionTtl());
         UUID poetId = poets.findByEmail(loginToken.getEmail()).map(Poet::getId).orElse(null);
+        if (poetId != null) {
+            poets.markSeen(poetId, now, now);
+        }
         UserSession session = sessions.save(new UserSession(
                 secretTokenService.hash(sessionToken), loginToken.getEmail(), poetId, sessionExpiry));
         return new LoginResult(sessionToken, session.getExpiresAt(), poetId != null);
@@ -115,7 +123,9 @@ public class AuthService {
         Instant now = Instant.now();
         return sessions.findActiveByTokenHash(secretTokenService.hash(sessionToken), now)
                 .map(session -> {
-                    session.markUsed(now);
+                    if (session.getPoetId() != null) {
+                        poets.markSeen(session.getPoetId(), now, now.minus(LAST_SEEN_PRECISION));
+                    }
                     return new AuthenticatedUser(session.getId(), session.getAuthenticatedEmail(),
                             session.getPoetId(), session.getExpiresAt());
                 });
@@ -125,6 +135,14 @@ public class AuthService {
     void logout(String sessionToken) {
         sessions.findActiveByTokenHash(secretTokenService.hash(sessionToken), Instant.now())
                 .ifPresent(session -> session.revoke(Instant.now()));
+    }
+
+    @Transactional(readOnly = true)
+    boolean isActiveAdmin(UUID poetId) {
+        return poetId != null && poets.findById(poetId)
+                .filter(poet -> poet.getRole() == PoetRole.ADMIN)
+                .filter(poet -> poet.getAccountStatus() == AccountStatus.ACTIVE)
+                .isPresent();
     }
 
     @Transactional

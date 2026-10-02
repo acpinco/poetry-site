@@ -122,7 +122,7 @@ class AuthController {
 
     @GetMapping("/me")
     MeResponse me(@AuthenticationPrincipal AuthenticatedUser user) {
-        return new MeResponse(user.email(), user.poetId(), user.expiresAt());
+        return new MeResponse(user.email(), user.poetId(), user.expiresAt(), authService.isActiveAdmin(user.poetId()));
     }
 
     private ResponseCookie sessionCookie(String value, Duration maxAge) {
@@ -156,6 +156,6 @@ class AuthController {
     record LoginResponse(java.time.Instant expiresAt, boolean profileExists) {
     }
 
-    record MeResponse(String email, java.util.UUID poetId, java.time.Instant expiresAt) {
+    record MeResponse(String email, java.util.UUID poetId, java.time.Instant expiresAt, boolean admin) {
     }
 }

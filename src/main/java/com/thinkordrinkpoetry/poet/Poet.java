@@ -28,6 +28,9 @@ public class Poet {
     @Enumerated(EnumType.STRING) private PoetRole role;
     @Column(name = "locked_at") private Instant lockedAt;
     @Column(name = "locked_reason") private String lockedReason;
+    // Set on creation, then written only by PoetRepository.markSeen so a profile save never
+    // overwrites a newer visit.
+    @Column(name = "last_seen_at", updatable = false) private Instant lastSeenAt;
     // Set by the column default and the trg_poet_updated_at trigger; Hibernate reads them back after writes.
     @Generated
     @Column(name = "created_at", insertable = false, updatable = false) private Instant createdAt;
@@ -38,7 +41,7 @@ public class Poet {
             AccountStatus accountStatus, PoetRole role) {
         this.id = UuidCreator.getTimeOrderedEpoch(); this.email = email; this.firstName = firstName; this.lastName = lastName;
         this.penName = penName; this.bio = bio; this.legacySubmittedOn = legacySubmittedOn;
-        this.accountStatus = accountStatus; this.role = role;
+        this.accountStatus = accountStatus; this.role = role; this.lastSeenAt = Instant.now();
     }
     public void updateProfile(String firstName, String lastName, String penName, String bio) {
         this.firstName = firstName; this.lastName = lastName; this.penName = penName; this.bio = bio;

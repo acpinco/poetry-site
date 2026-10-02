@@ -210,6 +210,27 @@ class AuthAndPoemFlowIntegrationTest {
     }
 
     @Test
+    void signInRecordsLastSeenWithoutChangingTheProfileUpdatedAt() throws Exception {
+        Cookie firstSession = requestSession("visitor@example.com");
+        String createdJson = createPoet(firstSession, "Langston", "Hughes").getResponse().getContentAsString();
+        Instant firstSeen = Instant.parse(com.jayway.jsonpath.JsonPath.read(createdJson, "$.lastSeenAt"));
+
+        Cookie secondSession = signIn("visitor@example.com");
+        String visitedJson = mockMvc.perform(get("/api/poets/me").cookie(secondSession))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(visitedJson, "$.lastSeenAt"))).isAfter(firstSeen);
+        assertThat((String) com.jayway.jsonpath.JsonPath.read(visitedJson, "$.updatedAt"))
+                .isEqualTo(com.jayway.jsonpath.JsonPath.read(createdJson, "$.updatedAt"));
+        mockMvc.perform(get("/api/auth/me").cookie(secondSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.admin").value(false));
+        mockMvc.perform(get("/api/admin/poets").cookie(secondSession))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void unauthenticatedUsersCannotWritePoems() throws Exception {
         mockMvc.perform(post("/api/poems")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -271,9 +292,15 @@ class AuthAndPoemFlowIntegrationTest {
                 target.getResponse().getContentAsString(),
                 "$.poetId");
 
+        mockMvc.perform(get("/api/auth/me").cookie(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.admin").value(true));
+
         mockMvc.perform(get("/api/admin/poets").cookie(adminSession))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].poetId").value(org.hamcrest.Matchers.hasItem(targetPoetId)));
+                .andExpect(jsonPath("$[*].poetId").value(org.hamcrest.Matchers.hasItem(targetPoetId)))
+                .andExpect(jsonPath("$[?(@.poetId == '%s')].lastSeenAt".formatted(targetPoetId))
+                        .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.notNullValue())));
 
         mockMvc.perform(post("/api/admin/poets/{poetId}/lock", targetPoetId)
                         .cookie(adminSession)
@@ -298,6 +325,26 @@ class AuthAndPoemFlowIntegrationTest {
                                 """.formatted(firstName, lastName, firstName, lastName)))
                 .andExpect(status().isCreated())
                 .andReturn();
+    }
+
+    /** Signs an existing poet in through the sign-in form, returning the new session cookie. */
+    private Cookie signIn(String email) throws Exception {
+        ArgumentCaptor<String> magicLink = ArgumentCaptor.forClass(String.class);
+        mockMvc.perform(post("/api/auth/magic-links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s"}
+                                """.formatted(email)))
+                .andExpect(status().isNoContent());
+        verify(magicLinkMailer, times(2)).send(eq(email), magicLink.capture());
+
+        String token = new URI(magicLink.getValue()).getPath().replaceFirst(".*/", "");
+        MvcResult login = mockMvc.perform(get("/api/auth/magic-links/{token}", token))
+                .andExpect(status().isSeeOther())
+                .andExpect(header().string("Location", containsString("/home")))
+                .andReturn();
+        String cookieValue = login.getResponse().getHeader("Set-Cookie").replaceFirst("^[^=]+=([^;]+).*$", "$1");
+        return new Cookie("poetry_session", cookieValue);
     }
 
     private Cookie requestSession(String email) throws Exception {
