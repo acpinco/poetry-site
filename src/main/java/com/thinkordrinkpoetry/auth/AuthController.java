@@ -1,10 +1,10 @@
 package com.thinkordrinkpoetry.auth;
 
 import com.thinkordrinkpoetry.web.ClientIpResolver;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -37,7 +37,8 @@ class AuthController {
 
     /** Sign-in for existing poets. Always 204, whether or not the address has an account. */
     @PostMapping("/magic-links")
-    ResponseEntity<Void> requestMagicLink(@Valid @RequestBody MagicLinkRequest request, HttpServletRequest servletRequest) {
+    ResponseEntity<Void> requestMagicLink(
+            @Valid @RequestBody MagicLinkRequest request, HttpServletRequest servletRequest) {
         authService.requestMagicLink(request.email(), clientIps.resolve(servletRequest));
         return ResponseEntity.noContent().build();
     }
@@ -71,7 +72,10 @@ class AuthController {
             throw exception;
         }
         return ResponseEntity.status(HttpStatus.SEE_OTHER)
-                .header(HttpHeaders.SET_COOKIE, sessionCookie(result.sessionToken(), properties.sessionTtl()).toString())
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        sessionCookie(result.sessionToken(), properties.sessionTtl())
+                                .toString())
                 .header(HttpHeaders.LOCATION, destination(result))
                 .build();
     }
@@ -84,8 +88,10 @@ class AuthController {
     @PostMapping("/magic-links/{token}/consume")
     ResponseEntity<?> consumeMagicLink(@PathVariable String token, HttpServletRequest request) {
         AuthService.LoginResult result = authService.consumeMagicLink(token);
-        String sessionCookie = sessionCookie(result.sessionToken(), properties.sessionTtl()).toString();
-        if (request.getHeader(HttpHeaders.ACCEPT) != null && request.getHeader(HttpHeaders.ACCEPT).contains(MediaType.TEXT_HTML_VALUE)) {
+        String sessionCookie =
+                sessionCookie(result.sessionToken(), properties.sessionTtl()).toString();
+        if (request.getHeader(HttpHeaders.ACCEPT) != null
+                && request.getHeader(HttpHeaders.ACCEPT).contains(MediaType.TEXT_HTML_VALUE)) {
             return ResponseEntity.status(HttpStatus.SEE_OTHER)
                     .header(HttpHeaders.SET_COOKIE, sessionCookie)
                     .header(HttpHeaders.LOCATION, destination(result))
@@ -144,18 +150,13 @@ class AuthController {
         return properties.frontendBaseUrl().replaceAll("/+$", "") + "/sign-in?error=magic-link";
     }
 
-    record MagicLinkRequest(@NotBlank String email) {
-    }
+    record MagicLinkRequest(@NotBlank String email) {}
 
-    record SignUpRequest(@NotBlank String email, @NotBlank String turnstileToken) {
-    }
+    record SignUpRequest(@NotBlank String email, @NotBlank String turnstileToken) {}
 
-    record SignUpConfig(String turnstileSiteKey) {
-    }
+    record SignUpConfig(String turnstileSiteKey) {}
 
-    record LoginResponse(java.time.Instant expiresAt, boolean profileExists) {
-    }
+    record LoginResponse(java.time.Instant expiresAt, boolean profileExists) {}
 
-    record MeResponse(String email, java.util.UUID poetId, java.time.Instant expiresAt, boolean admin) {
-    }
+    record MeResponse(String email, java.util.UUID poetId, java.time.Instant expiresAt, boolean admin) {}
 }

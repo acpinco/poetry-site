@@ -14,9 +14,7 @@ class PublicDiscoveryRateLimiter {
 
     void check(String clientIp, boolean isSearch) {
         if (!(isSearch ? search : browse).tryAcquire(clientIp)) {
-            throw new ResponseStatusException(
-                    HttpStatus.TOO_MANY_REQUESTS,
-                    "Please slow down and try again shortly.");
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Please slow down and try again shortly.");
         }
     }
 

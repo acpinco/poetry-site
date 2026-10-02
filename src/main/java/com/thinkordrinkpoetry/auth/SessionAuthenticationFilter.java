@@ -25,12 +25,15 @@ class SessionAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         String token = findCookie(request);
         if (token != null) {
-            authService.authenticate(token).ifPresent(user -> SecurityContextHolder.getContext().setAuthentication(
-                    UsernamePasswordAuthenticationToken.authenticated(user, null, authorities(user))));
+            authService
+                    .authenticate(token)
+                    .ifPresent(user -> SecurityContextHolder.getContext()
+                            .setAuthentication(
+                                    UsernamePasswordAuthenticationToken.authenticated(user, null, authorities(user))));
         }
         try {
             filterChain.doFilter(request, response);

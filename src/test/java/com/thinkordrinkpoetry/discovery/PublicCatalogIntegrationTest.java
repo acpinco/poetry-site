@@ -1,7 +1,7 @@
 package com.thinkordrinkpoetry.discovery;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -54,7 +54,9 @@ class PublicCatalogIntegrationTest {
 
     @BeforeEach
     void seed() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(applicationContext).apply(springSecurity()).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(applicationContext)
+                .apply(springSecurity())
+                .build();
         jdbc.update("delete from poet");
         maya = poet("maya@example.test", "Maya", "Angelou", "Caged Bird", "Poet & teacher <b>bold</b>");
         robert = poet("robert@example.test", "Robert", "Frost", null, null);
@@ -81,10 +83,10 @@ class PublicCatalogIntegrationTest {
                 .andExpect(jsonPath("$.poet.displayName").value("Caged Bird"))
                 .andExpect(jsonPath("$.poet.poemCount").value(2))
                 .andExpect(jsonPath("$.poems", hasSize(2)))
-                .andExpect(jsonPath("$.poems[?(@.title == 'Old <Verse>')].createdAt").value(
-                        org.hamcrest.Matchers.contains("1999-03-12T00:00:00Z")))
-                .andExpect(jsonPath("$.poems[?(@.title == 'Old <Verse>')].excerpt").value(
-                        org.hamcrest.Matchers.contains("Line one two")));
+                .andExpect(jsonPath("$.poems[?(@.title == 'Old <Verse>')].createdAt")
+                        .value(org.hamcrest.Matchers.contains("1999-03-12T00:00:00Z")))
+                .andExpect(jsonPath("$.poems[?(@.title == 'Old <Verse>')].excerpt")
+                        .value(org.hamcrest.Matchers.contains("Line one two")));
     }
 
     @Test
@@ -109,8 +111,7 @@ class PublicCatalogIntegrationTest {
                 .andExpect(jsonPath("$.poetDisplayName").value("Caged Bird"))
                 .andExpect(jsonPath("$.poetBio").value("Poet & teacher <b>bold</b>"))
                 .andExpect(jsonPath("$.createdAt").value("1999-03-12T00:00:00Z"));
-        mockMvc.perform(get("/api/discovery/poems/{id}", UUID.randomUUID()))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/discovery/poems/{id}", UUID.randomUUID())).andExpect(status().isNotFound());
     }
 
     @Test
@@ -144,8 +145,7 @@ class PublicCatalogIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.poets", hasSize(0)))
                 .andExpect(jsonPath("$.poems", hasSize(0)));
-        mockMvc.perform(get("/api/discovery/search").param("q", "__"))
-                .andExpect(jsonPath("$.poems", hasSize(0)));
+        mockMvc.perform(get("/api/discovery/search").param("q", "__")).andExpect(jsonPath("$.poems", hasSize(0)));
     }
 
     @Test
@@ -163,15 +163,16 @@ class PublicCatalogIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.startsWith("<!doctype html>")))
                 .andExpect(content().string(containsString("Old &lt;Verse&gt; by Caged Bird | Think or Drink Poetry")))
-                .andExpect(content().string(containsString(
-                        "\"author\":{\"@type\":\"Person\",\"name\":\"Caged Bird\"}")))
-                .andExpect(content().string(containsString(
-                        "<link rel=\"canonical\" href=\"http://localhost:5173/poems/" + legacyPoem + "/old-verse\">")))
+                .andExpect(
+                        content().string(containsString("\"author\":{\"@type\":\"Person\",\"name\":\"Caged Bird\"}")))
+                .andExpect(content()
+                        .string(containsString("<link rel=\"canonical\" href=\"http://localhost:5173/poems/"
+                                + legacyPoem + "/old-verse\">")))
                 .andExpect(content().string(containsString("A poem by Caged Bird")))
                 .andExpect(content().string(containsString("Published 1999-03-12")))
                 .andExpect(content().string(containsString("\"datePublished\":\"1999-03-12\"")))
-                .andExpect(content().string(containsString(
-                        "href=\"http://localhost:5173/poets/" + maya + "/caged-bird\"")))
+                .andExpect(content()
+                        .string(containsString("href=\"http://localhost:5173/poets/" + maya + "/caged-bird\"")))
                 .andExpect(content().string(not(containsString("<Verse>"))));
     }
 

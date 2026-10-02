@@ -64,8 +64,8 @@ public class PoemOfTheDayService {
     }
 
     private int currentCycle() {
-        Integer cycle = jdbc.queryForObject(
-                "select coalesce(max(cycle_number), 1) from poem_of_the_day", Integer.class);
+        Integer cycle =
+                jdbc.queryForObject("select coalesce(max(cycle_number), 1) from poem_of_the_day", Integer.class);
         return cycle == null ? 1 : cycle;
     }
 

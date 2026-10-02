@@ -43,6 +43,16 @@ operations still require a valid session.
 `SWAGGER_ENABLED` defaults to `true`. Set it to `false` only if the public documentation must be
 disabled. The website root remains the normal landing page; it never redirects to Swagger.
 
+## Code checks
+
+CI runs these on every push; run them before committing:
+
+```bash
+./mvnw spotless:apply   # format Java (CI runs spotless:check)
+./mvnw test             # compile with warnings as errors, then all backend tests
+cd frontend && npm run check   # Prettier, ESLint, type-check, tests, build
+```
+
 ## Production deployment on the server
 
 Cloudflare Tunnel terminates public HTTPS and forwards traffic to Docker Caddy on the server. The

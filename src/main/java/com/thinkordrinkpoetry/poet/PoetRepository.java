@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface PoetRepository extends JpaRepository<Poet, UUID> {
     Optional<Poet> findByEmail(String email);
+
     long countByRole(PoetRole role);
 
     long countByLastSeenAtAfter(Instant instant);

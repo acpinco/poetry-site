@@ -7,9 +7,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.AccessLevel;
 
 @Entity
 @Table(name = "email_login_token")

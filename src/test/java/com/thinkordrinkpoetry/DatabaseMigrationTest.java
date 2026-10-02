@@ -18,48 +18,42 @@ class DatabaseMigrationTest {
 
     @Container
     @ServiceConnection
-    static final PostgreSQLContainer POSTGRES =
-            new PostgreSQLContainer("postgres:18.6-alpine3.23");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-alpine3.23");
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Test
     void appliesTheExpectedSchema() {
-        var tableNames = jdbcTemplate.queryForList(
-                """
+        var tableNames = jdbcTemplate.queryForList("""
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = 'public'
                   AND table_name IN ('poet', 'email_login_token', 'user_session', 'poem_of_the_day',
                                      'legacy_poetry_outreach_delivery')
-                """,
-                String.class);
+                """, String.class);
 
         assertThat(tableNames)
-                .containsExactlyInAnyOrder("poet", "email_login_token", "user_session", "poem_of_the_day",
+                .containsExactlyInAnyOrder(
+                        "poet",
+                        "email_login_token",
+                        "user_session",
+                        "poem_of_the_day",
                         "legacy_poetry_outreach_delivery");
     }
 
     @Test
     void generatesUuidV7AndDerivesFullName() {
-        UUID poetId = jdbcTemplate.queryForObject(
-                """
+        UUID poetId = jdbcTemplate.queryForObject("""
                 INSERT INTO poet (email, first_name, last_name, pen_name)
                 VALUES ('maya@example.test', 'Maya', 'Angelou', 'Maya Angelou')
                 RETURNING id
-                """,
-                UUID.class);
+                """, UUID.class);
 
         Integer uuidVersion = jdbcTemplate.queryForObject(
-                "SELECT uuid_extract_version(CAST(? AS uuid))",
-                Integer.class,
-                poetId.toString());
+                "SELECT uuid_extract_version(CAST(? AS uuid))", Integer.class, poetId.toString());
 
-        String fullName = jdbcTemplate.queryForObject(
-                "SELECT full_name FROM poet WHERE id = ?",
-                String.class,
-                poetId);
+        String fullName = jdbcTemplate.queryForObject("SELECT full_name FROM poet WHERE id = ?", String.class, poetId);
 
         assertThat(uuidVersion).isEqualTo(7);
         assertThat(fullName).isEqualTo("Maya Angelou");

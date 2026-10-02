@@ -23,5 +23,4 @@ public record AuthProperties(
         int magicLinkIpLimit,
         int magicLinkGlobalLimit,
         String turnstileSiteKey,
-        String turnstileSecretKey) {
-}
+        String turnstileSecretKey) {}

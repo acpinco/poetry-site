@@ -30,10 +30,7 @@ public class PoemCatalog {
             rs.getInt("poem_count"));
 
     private static final RowMapper<PoemSummary> POEM_SUMMARY = (rs, row) -> new PoemSummary(
-            rs.getObject("poem_id", UUID.class),
-            rs.getString("title"),
-            rs.getString("excerpt"),
-            publishedAt(rs));
+            rs.getObject("poem_id", UUID.class), rs.getString("title"), rs.getString("excerpt"), publishedAt(rs));
 
     private static final RowMapper<RecentPoemSummary> RECENT_POEM = (rs, row) -> new RecentPoemSummary(
             rs.getObject("poem_id", UUID.class),
@@ -59,10 +56,8 @@ public class PoemCatalog {
             rs.getString("poet_display_name"),
             rs.getString("excerpt"));
 
-    private static final RowMapper<SitemapItem> SITEMAP_ITEM = (rs, row) -> new SitemapItem(
-            rs.getObject(1, UUID.class),
-            rs.getString(2),
-            rs.getObject(3, LocalDate.class));
+    private static final RowMapper<SitemapItem> SITEMAP_ITEM = (rs, row) ->
+            new SitemapItem(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, LocalDate.class));
 
     private final JdbcTemplate jdbc;
 
@@ -83,8 +78,7 @@ public class PoemCatalog {
     }
 
     public Optional<PoetSummary> randomPublishedPoet() {
-        return first(jdbc.query(
-                "select * from poet_listing where poem_count > 0 order by random() limit 1", POET));
+        return first(jdbc.query("select * from poet_listing where poem_count > 0 order by random() limit 1", POET));
     }
 
     public List<PoetSummary> publishedPoets() {
@@ -123,8 +117,7 @@ public class PoemCatalog {
     /** A poet's poems, newest publication first, for their public page. */
     public List<PoemSummary> poemsByPoetByPublication(UUID poetId) {
         return jdbc.query(
-                "select * from poem_listing where poet_id = ? order by published_at desc, title",
-                POEM_SUMMARY, poetId);
+                "select * from poem_listing where poet_id = ? order by published_at desc, title", POEM_SUMMARY, poetId);
     }
 
     /** The newest additions to the site, by when they were added. */
@@ -173,7 +166,8 @@ public class PoemCatalog {
 
     /** A LIKE pattern matching the query anywhere. % and _ in the query are matched literally. */
     private static String containsPattern(String query) {
-        String literal = query.trim().toLowerCase(Locale.ROOT)
+        String literal = query.trim()
+                .toLowerCase(Locale.ROOT)
                 .replace("\\", "\\\\")
                 .replace("%", "\\%")
                 .replace("_", "\\_");
@@ -196,7 +190,12 @@ public class PoemCatalog {
             UUID poemId, UUID poetId, String title, String poetDisplayName, String excerpt, Instant createdAt) {}
 
     public record PoemDetail(
-            UUID poemId, UUID poetId, String title, String poem, String poetDisplayName, String poetBio,
+            UUID poemId,
+            UUID poetId,
+            String title,
+            String poem,
+            String poetDisplayName,
+            String poetBio,
             Instant createdAt) {}
 
     public record PoemSearchResult(UUID poemId, UUID poetId, String title, String poetDisplayName, String excerpt) {}

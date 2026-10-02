@@ -24,7 +24,9 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     /** A unique constraint lost a race with another request, such as two people claiming one pen name. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     ProblemDetail conflict(DataIntegrityViolationException exception) {
-        log.warn("Rejected a change that conflicts with existing data: {}", exception.getMostSpecificCause().getMessage());
+        log.warn(
+                "Rejected a change that conflicts with existing data: {}",
+                exception.getMostSpecificCause().getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "That change conflicts with existing data.");
     }
 
@@ -32,6 +34,7 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     ProblemDetail unexpected(Exception exception) {
         log.error("Unexpected error handling an API request", exception);
-        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again.");
+        return ProblemDetail.forStatusAndDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again.");
     }
 }

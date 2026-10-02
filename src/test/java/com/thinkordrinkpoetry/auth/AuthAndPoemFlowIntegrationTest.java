@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -43,9 +42,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(
         classes = PoetrySiteApplication.class,
         properties = {
-                "ADMIN_EMAIL=admin@example.com",
-                // Every MockMvc request comes from 127.0.0.1, so the per-IP limit would trip across tests.
-                "app.auth.magic-link-ip-limit=1000"})
+            "ADMIN_EMAIL=admin@example.com",
+            // Every MockMvc request comes from 127.0.0.1, so the per-IP limit would trip across tests.
+            "app.auth.magic-link-ip-limit=1000"
+        })
 class AuthAndPoemFlowIntegrationTest {
 
     @Container
@@ -162,10 +162,8 @@ class AuthAndPoemFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.poem").value("A free bird dares"));
 
-        mockMvc.perform(delete("/api/poems/{poemId}", poemId).cookie(session))
-                .andExpect(status().isNoContent());
-        mockMvc.perform(get("/api/poems/{poemId}", poemId).cookie(session))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/poems/{poemId}", poemId).cookie(session)).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/poems/{poemId}", poemId).cookie(session)).andExpect(status().isNotFound());
     }
 
     @Test
@@ -205,7 +203,8 @@ class AuthAndPoemFlowIntegrationTest {
                 .andReturn();
         String updatedJson = updated.getResponse().getContentAsString();
 
-        assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(updatedJson, "$.createdAt"))).isEqualTo(createdAt);
+        assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(updatedJson, "$.createdAt")))
+                .isEqualTo(createdAt);
         assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(updatedJson, "$.updatedAt")))
                 .isAfter(firstUpdatedAt);
     }
@@ -213,22 +212,25 @@ class AuthAndPoemFlowIntegrationTest {
     @Test
     void signInRecordsLastSeenWithoutChangingTheProfileUpdatedAt() throws Exception {
         Cookie firstSession = requestSession("visitor@example.com");
-        String createdJson = createPoet(firstSession, "Langston", "Hughes").getResponse().getContentAsString();
+        String createdJson =
+                createPoet(firstSession, "Langston", "Hughes").getResponse().getContentAsString();
         Instant firstSeen = Instant.parse(com.jayway.jsonpath.JsonPath.read(createdJson, "$.lastSeenAt"));
 
         Cookie secondSession = signIn("visitor@example.com");
         String visitedJson = mockMvc.perform(get("/api/poets/me").cookie(secondSession))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-        assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(visitedJson, "$.lastSeenAt"))).isAfter(firstSeen);
+        assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(visitedJson, "$.lastSeenAt")))
+                .isAfter(firstSeen);
         assertThat((String) com.jayway.jsonpath.JsonPath.read(visitedJson, "$.updatedAt"))
                 .isEqualTo(com.jayway.jsonpath.JsonPath.read(createdJson, "$.updatedAt"));
         mockMvc.perform(get("/api/auth/me").cookie(secondSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.admin").value(false));
-        mockMvc.perform(get("/api/admin/poets").cookie(secondSession))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/poets").cookie(secondSession)).andExpect(status().isForbidden());
     }
 
     @Test
@@ -307,8 +309,7 @@ class AuthAndPoemFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openapi").exists());
 
-        mockMvc.perform(get("/swagger-ui/index.html"))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
     }
 
     @Test
@@ -339,11 +340,13 @@ class AuthAndPoemFlowIntegrationTest {
                 .andExpect(content().string(containsString("Poem of the Day")));
         String firstPick = mockMvc.perform(get("/api/discovery/poem-of-the-day"))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         mockMvc.perform(get("/api/discovery/poem-of-the-day"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.poemId").value(
-                        (String) com.jayway.jsonpath.JsonPath.read(firstPick, "$.poemId")));
+                .andExpect(
+                        jsonPath("$.poemId").value((String) com.jayway.jsonpath.JsonPath.read(firstPick, "$.poemId")));
         mockMvc.perform(get("/sitemap.xml"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/poem-of-the-day")));
@@ -356,9 +359,8 @@ class AuthAndPoemFlowIntegrationTest {
 
         Cookie targetSession = requestSession("target@example.com");
         MvcResult target = createPoet(targetSession, "Target", "Poet");
-        String targetPoetId = com.jayway.jsonpath.JsonPath.read(
-                target.getResponse().getContentAsString(),
-                "$.poetId");
+        String targetPoetId =
+                com.jayway.jsonpath.JsonPath.read(target.getResponse().getContentAsString(), "$.poetId");
 
         mockMvc.perform(get("/api/auth/me").cookie(adminSession))
                 .andExpect(status().isOk())
@@ -383,8 +385,7 @@ class AuthAndPoemFlowIntegrationTest {
                 .andExpect(jsonPath("$.poets[?(@.poetId == '%s')].accountStatus".formatted(targetPoetId))
                         .value(org.hamcrest.Matchers.hasItem("LOCKED")));
         // Locking ends the target's sessions immediately.
-        mockMvc.perform(get("/api/poets/me").cookie(targetSession))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/poets/me").cookie(targetSession)).andExpect(status().isForbidden());
 
         mockMvc.perform(post("/api/admin/poets/{poetId}/unlock", targetPoetId).cookie(adminSession))
                 .andExpect(status().isOk());
@@ -393,14 +394,18 @@ class AuthAndPoemFlowIntegrationTest {
                         .value(org.hamcrest.Matchers.hasItem("ACTIVE")));
 
         String adminPoetId = com.jayway.jsonpath.JsonPath.read(
-                mockMvc.perform(get("/api/poets/me").cookie(adminSession)).andReturn().getResponse().getContentAsString(),
+                mockMvc.perform(get("/api/poets/me").cookie(adminSession))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
                 "$.poetId");
         mockMvc.perform(delete("/api/admin/poets/{poetId}", adminPoetId).cookie(adminSession))
                 .andExpect(status().isConflict());
         mockMvc.perform(delete("/api/admin/poets/{poetId}", targetPoetId).cookie(adminSession))
                 .andExpect(status().isNoContent());
         mockMvc.perform(get("/api/admin/poets").cookie(adminSession))
-                .andExpect(jsonPath("$.poets[*].poetId").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(targetPoetId))));
+                .andExpect(jsonPath("$.poets[*].poetId")
+                        .value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(targetPoetId))));
     }
 
     private MvcResult createPoet(Cookie session, String firstName, String lastName) throws Exception {

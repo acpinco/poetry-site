@@ -10,10 +10,10 @@ import com.thinkordrinkpoetry.PoetrySiteApplication;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.sql.Timestamp;
 import java.util.HexFormat;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,16 +50,25 @@ class AdminPoetListIntegrationTest {
 
     @BeforeEach
     void seed() throws Exception {
-        mockMvc = MockMvcBuilders.webAppContextSetup(applicationContext).apply(springSecurity()).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(applicationContext)
+                .apply(springSecurity())
+                .build();
         jdbc.update("delete from poet");
         Instant now = Instant.now();
         UUID admin = poet("admin@example.test", "Admin", "Poet", null, "ADMIN", null, null);
         poet("zed@example.test", "Zed", "Zulu", null, "USER", now.minus(1, ChronoUnit.DAYS), null);
         poet("amy@example.test", "Amelia", "Ames", "amy", "USER", null, null);
-        poet("bob@example.test", "Bob", "Brown", null, "USER", now.minus(10, ChronoUnit.DAYS), LocalDate.of(1999, 4, 1));
+        poet(
+                "bob@example.test",
+                "Bob",
+                "Brown",
+                null,
+                "USER",
+                now.minus(10, ChronoUnit.DAYS),
+                LocalDate.of(1999, 4, 1));
         // Sign the admin in directly: the session table stores the SHA-256 of the cookie value.
-        String hash = HexFormat.of().formatHex(
-                MessageDigest.getInstance("SHA-256").digest(SESSION_TOKEN.getBytes(StandardCharsets.UTF_8)));
+        String hash = HexFormat.of()
+                .formatHex(MessageDigest.getInstance("SHA-256").digest(SESSION_TOKEN.getBytes(StandardCharsets.UTF_8)));
         jdbc.update("""
                 insert into user_session (session_token_hash, authenticated_email, poet_id, expires_at)
                 values (?, 'admin@example.test', ?, ?)
@@ -71,8 +80,7 @@ class AdminPoetListIntegrationTest {
         list("name", "asc", 0, 2)
                 .andExpect(jsonPath("$.poets[*].penName", contains("Admin Poet", "amy")))
                 .andExpect(jsonPath("$.totalPoets").value(4));
-        list("name", "asc", 1, 2)
-                .andExpect(jsonPath("$.poets[*].penName", contains("Bob Brown", "Zed Zulu")));
+        list("name", "asc", 1, 2).andExpect(jsonPath("$.poets[*].penName", contains("Bob Brown", "Zed Zulu")));
         list("name", "desc", 0, 50)
                 .andExpect(jsonPath("$.poets[*].penName", contains("Zed Zulu", "Bob Brown", "amy", "Admin Poet")));
     }
@@ -102,19 +110,33 @@ class AdminPoetListIntegrationTest {
     private org.springframework.test.web.servlet.ResultActions list(String sort, String direction, int page, int size)
             throws Exception {
         return mockMvc.perform(get("/api/admin/poets")
-                        .cookie(new Cookie("poetry_session", SESSION_TOKEN))
-                        .param("sort", sort)
-                        .param("direction", direction)
-                        .param("page", String.valueOf(page))
-                        .param("size", String.valueOf(size)));
+                .cookie(new Cookie("poetry_session", SESSION_TOKEN))
+                .param("sort", sort)
+                .param("direction", direction)
+                .param("page", String.valueOf(page))
+                .param("size", String.valueOf(size)));
     }
 
-    private UUID poet(String email, String firstName, String lastName, String penName, String role, Instant lastSeenAt,
+    private UUID poet(
+            String email,
+            String firstName,
+            String lastName,
+            String penName,
+            String role,
+            Instant lastSeenAt,
             LocalDate legacySubmittedOn) {
-        return jdbc.queryForObject("""
+        return jdbc.queryForObject(
+                """
                 insert into poet (email, first_name, last_name, pen_name, role, last_seen_at, legacy_submitted_on)
                 values (?, ?, ?, ?, ?, ?, ?) returning id
-                """, UUID.class, email, firstName, lastName, penName, role,
-                lastSeenAt == null ? null : Timestamp.from(lastSeenAt), legacySubmittedOn);
+                """,
+                UUID.class,
+                email,
+                firstName,
+                lastName,
+                penName,
+                role,
+                lastSeenAt == null ? null : Timestamp.from(lastSeenAt),
+                legacySubmittedOn);
     }
 }

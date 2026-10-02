@@ -35,31 +35,43 @@ public class AdminController {
 
     /** Poets one page at a time; sort is name, email, status, joined, or lastSeen. */
     @GetMapping("/poets")
-    public PoetsPageResponse poets(@AuthenticationPrincipal AuthenticatedUser user,
+    public PoetsPageResponse poets(
+            @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(defaultValue = "lastSeen") String sort,
             @RequestParam(defaultValue = "desc") String direction,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "50") @Min(1) @Max(MAX_PAGE_SIZE) int size) {
-        AdminService.PoetPage result = adminService.poets(user, poetSort(sort), "desc".equalsIgnoreCase(direction),
-                page, size);
-        return new PoetsPageResponse(result.poets().stream().map(PoetResponse::from).toList(), page, size,
-                result.totalPoets(), result.seenLastWeek());
+        AdminService.PoetPage result =
+                adminService.poets(user, poetSort(sort), "desc".equalsIgnoreCase(direction), page, size);
+        return new PoetsPageResponse(
+                result.poets().stream().map(PoetResponse::from).toList(),
+                page,
+                size,
+                result.totalPoets(),
+                result.seenLastWeek());
     }
 
     @GetMapping("/poems")
-    public List<PoemResponse> poems(@AuthenticationPrincipal AuthenticatedUser user,
+    public List<PoemResponse> poems(
+            @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "50") @Min(1) @Max(MAX_PAGE_SIZE) int size) {
-        return adminService.poems(user, page, size).stream().map(PoemResponse::from).toList();
+        return adminService.poems(user, page, size).stream()
+                .map(PoemResponse::from)
+                .toList();
     }
 
     @GetMapping("/poets/{poetId}/poems")
     public List<PoemResponse> poemsByPoet(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID poetId) {
-        return adminService.poemsByPoet(user, poetId).stream().map(PoemResponse::from).toList();
+        return adminService.poemsByPoet(user, poetId).stream()
+                .map(PoemResponse::from)
+                .toList();
     }
 
     @PostMapping("/poets/{poetId}/lock")
-    public void lock(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID poetId,
+    public void lock(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID poetId,
             @Valid @RequestBody(required = false) Reason request) {
         adminService.lock(user, poetId, request == null ? null : request.reason());
     }
@@ -93,13 +105,13 @@ public class AdminController {
             case "status" -> AdminService.PoetSort.STATUS;
             case "joined" -> AdminService.PoetSort.JOINED;
             case "lastSeen" -> AdminService.PoetSort.LAST_SEEN;
-            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Sort by name, email, status, joined, or lastSeen.");
+            default ->
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Sort by name, email, status, joined, or lastSeen.");
         };
     }
 
     public record Reason(@Size(max = 1000) String reason) {}
 
-    public record PoetsPageResponse(
-            List<PoetResponse> poets, int page, int size, long totalPoets, long seenLastWeek) {}
+    public record PoetsPageResponse(List<PoetResponse> poets, int page, int size, long totalPoets, long seenLastWeek) {}
 }

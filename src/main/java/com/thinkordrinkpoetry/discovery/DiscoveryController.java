@@ -28,8 +28,11 @@ public class DiscoveryController {
     private final PoemOfTheDayService poemOfTheDay;
     private final ClientIpResolver clientIps;
 
-    public DiscoveryController(PoemCatalog catalog, PublicDiscoveryRateLimiter limiter,
-            PoemOfTheDayService poemOfTheDay, ClientIpResolver clientIps) {
+    public DiscoveryController(
+            PoemCatalog catalog,
+            PublicDiscoveryRateLimiter limiter,
+            PoemOfTheDayService poemOfTheDay,
+            ClientIpResolver clientIps) {
         this.catalog = catalog;
         this.limiter = limiter;
         this.poemOfTheDay = poemOfTheDay;

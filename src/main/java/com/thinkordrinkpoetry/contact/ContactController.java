@@ -36,5 +36,6 @@ public class ContactController {
         mailer.send(poet, request.message());
     }
 
-    public record ContactRequest(@NotBlank @Size(max = 10_000) String message) {}
+    public record ContactRequest(
+            @NotBlank @Size(max = 10_000) String message) {}
 }

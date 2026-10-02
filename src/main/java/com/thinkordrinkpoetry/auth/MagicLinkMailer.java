@@ -27,7 +27,10 @@ class MagicLinkMailer {
     private final long linkLifetimeMinutes;
     private final String from;
 
-    MagicLinkMailer(JavaMailSender mailSender, ITemplateEngine templates, AuthProperties properties,
+    MagicLinkMailer(
+            JavaMailSender mailSender,
+            ITemplateEngine templates,
+            AuthProperties properties,
             @Value("${app.mail.from}") String from) {
         this.mailSender = mailSender;
         this.templates = templates;
@@ -66,7 +69,8 @@ class MagicLinkMailer {
     private void send(String email, String subject, String plainText, String html) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
             helper.setFrom(from);
             helper.setTo(email);
             helper.setSubject(subject);

@@ -9,9 +9,10 @@ import org.springframework.context.annotation.Configuration;
 class OpenApiConfiguration {
     @Bean
     OpenAPI thinkOrDrinkPoetryOpenApi() {
-        return new OpenAPI().info(new Info()
-                .title("Think or Drink Poetry API")
-                .version("v1")
-                .description("Public API documentation for Think or Drink Poetry."));
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Think or Drink Poetry API")
+                        .version("v1")
+                        .description("Public API documentation for Think or Drink Poetry."));
     }
 }

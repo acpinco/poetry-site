@@ -51,7 +51,8 @@ public class PublicLinks {
     }
 
     static String slugify(String value) {
-        String slug = value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
+        String slug =
+                value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
         return slug.isEmpty() ? "poem" : slug;
     }
 }

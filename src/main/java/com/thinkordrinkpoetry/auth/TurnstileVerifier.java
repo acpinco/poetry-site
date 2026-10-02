@@ -28,7 +28,9 @@ class TurnstileVerifier {
     private final RestClient restClient;
 
     TurnstileVerifier(AuthProperties properties) {
-        secretKey = properties.turnstileSecretKey() == null ? "" : properties.turnstileSecretKey().trim();
+        secretKey = properties.turnstileSecretKey() == null
+                ? ""
+                : properties.turnstileSecretKey().trim();
         if (secretKey.isEmpty()) {
             log.warn("TURNSTILE_SECRET_KEY is not set; new-account sign-up is disabled.");
         }
@@ -47,7 +49,8 @@ class TurnstileVerifier {
         form.add("response", token);
         form.add("remoteip", clientIp);
         try {
-            Map<String, Object> result = restClient.post()
+            Map<String, Object> result = restClient
+                    .post()
                     .uri(SITEVERIFY_URL)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(form)

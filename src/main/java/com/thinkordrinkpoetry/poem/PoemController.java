@@ -27,7 +27,8 @@ public class PoemController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PoemResponse create(@AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody PoemRequest request) {
+    public PoemResponse create(
+            @AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody PoemRequest request) {
         return PoemResponse.from(poemService.create(user, request));
     }
 
@@ -42,7 +43,9 @@ public class PoemController {
     }
 
     @PutMapping("/{poemId}")
-    public PoemResponse update(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID poemId,
+    public PoemResponse update(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID poemId,
             @Valid @RequestBody PoemRequest request) {
         return PoemResponse.from(poemService.update(user, poemId, request));
     }

@@ -1,3 +1,6 @@
 package com.thinkordrinkpoetry.poet;
 
-public enum PoetRole { USER, ADMIN }
+public enum PoetRole {
+    USER,
+    ADMIN
+}

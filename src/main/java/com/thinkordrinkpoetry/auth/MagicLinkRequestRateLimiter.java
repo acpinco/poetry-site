@@ -33,8 +33,8 @@ class MagicLinkRequestRateLimiter {
     /** Counts every request from this client, whether or not an email is sent. */
     void checkClient(String clientIp) {
         if (!perClient.tryAcquire(clientIp)) {
-            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
-                    "Too many sign-in requests. Please try again later.");
+            throw new ResponseStatusException(
+                    HttpStatus.TOO_MANY_REQUESTS, "Too many sign-in requests. Please try again later.");
         }
     }
 
@@ -50,8 +50,8 @@ class MagicLinkRequestRateLimiter {
     void checkGlobal() {
         if (!global.tryAcquire("global")) {
             log.warn("Site-wide sign-in email limit reached; refusing to send more this hour.");
-            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
-                    "Sign-in is busy right now. Please try again later.");
+            throw new ResponseStatusException(
+                    HttpStatus.TOO_MANY_REQUESTS, "Sign-in is busy right now. Please try again later.");
         }
     }
 

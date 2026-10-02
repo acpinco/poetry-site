@@ -21,6 +21,8 @@ jobs:
           cache: maven
       - name: Validate deployment and database scripts
         run: bash -n scripts/*.sh
+      - name: Check Java formatting (fix locally with ./mvnw spotless:apply)
+        run: ./mvnw --batch-mode spotless:check
       - name: Run compiler checks and integration tests
         run: ./mvnw test
 

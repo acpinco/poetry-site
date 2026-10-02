@@ -13,21 +13,20 @@ import org.springframework.web.server.ResponseStatusException;
 
 class MagicLinkRequestRateLimiterTest {
 
-    private final MagicLinkRequestRateLimiter rateLimiter = new MagicLinkRequestRateLimiter(
-            new AuthProperties(
-                    "http://localhost:8080",
-                    "http://localhost:5173",
-                    Duration.ofMinutes(15),
-                    2,
-                    Duration.ofDays(7),
-                    "poetry_session",
-                    false,
-                    "",
-                    "support@example.test",
-                    3,
-                    4,
-                    "",
-                    ""));
+    private final MagicLinkRequestRateLimiter rateLimiter = new MagicLinkRequestRateLimiter(new AuthProperties(
+            "http://localhost:8080",
+            "http://localhost:5173",
+            Duration.ofMinutes(15),
+            2,
+            Duration.ofDays(7),
+            "poetry_session",
+            false,
+            "",
+            "support@example.test",
+            3,
+            4,
+            "",
+            ""));
 
     @Test
     void rejectsAClientAfterItsLimitAcrossDifferentEmails() {
@@ -35,9 +34,8 @@ class MagicLinkRequestRateLimiterTest {
             assertDoesNotThrow(() -> rateLimiter.checkClient("203.0.113.7"));
         }
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> rateLimiter.checkClient("203.0.113.7"));
+        ResponseStatusException exception =
+                assertThrows(ResponseStatusException.class, () -> rateLimiter.checkClient("203.0.113.7"));
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatusCode());
         assertDoesNotThrow(() -> rateLimiter.checkClient("198.51.100.4"));

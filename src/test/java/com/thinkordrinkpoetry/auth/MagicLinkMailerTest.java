@@ -48,7 +48,19 @@ class MagicLinkMailerTest {
     }
 
     private static AuthProperties properties(Duration magicLinkTtl) {
-        return new AuthProperties("http://localhost:8080", "http://localhost:5173", magicLinkTtl, 5,
-                Duration.ofDays(7), "poetry_session", false, "", "support@example.test", 10, 200, "", "");
+        return new AuthProperties(
+                "http://localhost:8080",
+                "http://localhost:5173",
+                magicLinkTtl,
+                5,
+                Duration.ofDays(7),
+                "poetry_session",
+                false,
+                "",
+                "support@example.test",
+                10,
+                200,
+                "",
+                "");
     }
 }

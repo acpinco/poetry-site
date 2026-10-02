@@ -25,8 +25,9 @@ public final class FixedWindowRateLimiter {
     /** Records one request for {@code key} and returns whether it is within the limit. */
     public boolean tryAcquire(String key) {
         Instant now = clock.instant();
-        Window current = windows.compute(key, (ignored, existing) ->
-                existing == null || !existing.expiresAt().isAfter(now)
+        Window current = windows.compute(
+                key,
+                (ignored, existing) -> existing == null || !existing.expiresAt().isAfter(now)
                         ? new Window(now.plus(window), 1)
                         : new Window(existing.expiresAt(), existing.count() + 1));
         return current.count() <= limit;

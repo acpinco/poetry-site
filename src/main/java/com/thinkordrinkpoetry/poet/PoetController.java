@@ -24,7 +24,8 @@ public class PoetController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PoetResponse create(@AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody PoetRequest request) {
+    public PoetResponse create(
+            @AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody PoetRequest request) {
         return PoetResponse.from(poetService.create(user, request));
     }
 
@@ -34,7 +35,8 @@ public class PoetController {
     }
 
     @PutMapping("/me")
-    public PoetResponse update(@AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody PoetRequest request) {
+    public PoetResponse update(
+            @AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody PoetRequest request) {
         return PoetResponse.from(poetService.update(user, request));
     }
 

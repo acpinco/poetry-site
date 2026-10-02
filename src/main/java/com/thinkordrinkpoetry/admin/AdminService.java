@@ -31,8 +31,12 @@ class AdminService {
 
     private final EntityManager entityManager;
 
-    AdminService(PoetRepository poets, PoemRepository poems, UserSessionRepository sessions,
-            AdminAuditEventRepository audit, EntityManager entityManager) {
+    AdminService(
+            PoetRepository poets,
+            PoemRepository poems,
+            UserSessionRepository sessions,
+            AdminAuditEventRepository audit,
+            EntityManager entityManager) {
         this.poets = poets;
         this.poems = poems;
         this.sessions = sessions;
@@ -49,7 +53,8 @@ class AdminService {
         String sql = "select * from poet order by " + sort.column + (descending ? " desc" : " asc")
                 + " nulls last, id limit :size offset :offset";
         @SuppressWarnings("unchecked")
-        List<Poet> rows = entityManager.createNativeQuery(sql, Poet.class)
+        List<Poet> rows = entityManager
+                .createNativeQuery(sql, Poet.class)
                 .setParameter("size", size)
                 .setParameter("offset", (long) page * size)
                 .getResultList();

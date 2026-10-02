@@ -16,7 +16,6 @@ class EmailAddressNormalizerTest {
 
     @Test
     void rejectsAnInvalidEmail() {
-        assertThatThrownBy(() -> normalizer.normalize("not-an-email"))
-                .isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> normalizer.normalize("not-an-email")).isInstanceOf(ResponseStatusException.class);
     }
 }

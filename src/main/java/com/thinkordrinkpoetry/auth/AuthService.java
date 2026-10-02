@@ -6,8 +6,8 @@ import com.thinkordrinkpoetry.poet.PoetRepository;
 import com.thinkordrinkpoetry.poet.PoetRole;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,10 +28,15 @@ public class AuthService {
     private final PoetRepository poets;
     private final TurnstileVerifier turnstileVerifier;
 
-    AuthService(AuthProperties properties, EmailAddressNormalizer emailAddressNormalizer,
-            SecretTokenService secretTokenService, MagicLinkRequestRateLimiter rateLimiter,
+    AuthService(
+            AuthProperties properties,
+            EmailAddressNormalizer emailAddressNormalizer,
+            SecretTokenService secretTokenService,
+            MagicLinkRequestRateLimiter rateLimiter,
             EmailLoginTokenRepository loginTokens,
-            UserSessionRepository sessions, MagicLinkMailer magicLinkMailer, PoetRepository poets,
+            UserSessionRepository sessions,
+            MagicLinkMailer magicLinkMailer,
+            PoetRepository poets,
             TurnstileVerifier turnstileVerifier) {
         this.properties = properties;
         this.emailAddressNormalizer = emailAddressNormalizer;
@@ -70,8 +75,8 @@ public class AuthService {
         String email = emailAddressNormalizer.normalize(submittedEmail);
         rateLimiter.checkClient(clientIp);
         if (!turnstileVerifier.verify(turnstileToken, clientIp)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "We could not verify that you are human. Please try again.");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "We could not verify that you are human. Please try again.");
         }
         sendMagicLink(email, poets.findByEmail(email));
     }
@@ -82,27 +87,31 @@ public class AuthService {
         }
         rateLimiter.checkGlobal();
         if (poet.isPresent() && poet.get().getAccountStatus() == AccountStatus.LOCKED) {
-            magicLinkMailer.sendAccountNotice(email, "Your Think or Drink Poetry account is locked",
+            magicLinkMailer.sendAccountNotice(
+                    email,
+                    "Your Think or Drink Poetry account is locked",
                     "Your account has been locked. Contact " + properties.adminContactEmail() + " for help.");
             return;
         }
         if (poet.isPresent() && poet.get().getAccountStatus() == AccountStatus.LEGACY_UNCLAIMED) {
-            magicLinkMailer.sendAccountNotice(email, "Activate your Think or Drink Poetry account",
+            magicLinkMailer.sendAccountNotice(
+                    email,
+                    "Activate your Think or Drink Poetry account",
                     "This historical account must be activated before sign-in. Contact "
                             + properties.adminContactEmail() + " for help.");
             return;
         }
         String token = secretTokenService.create();
-        loginTokens.save(new EmailLoginToken(email, secretTokenService.hash(token),
-                Instant.now().plus(properties.magicLinkTtl())));
+        loginTokens.save(new EmailLoginToken(
+                email, secretTokenService.hash(token), Instant.now().plus(properties.magicLinkTtl())));
         magicLinkMailer.send(email, magicLinkUrl(token));
     }
 
     @Transactional
     LoginResult consumeMagicLink(String token) {
         Instant now = Instant.now();
-        EmailLoginToken loginToken = loginTokens.findByTokenHash(secretTokenService.hash(token))
-                .orElseThrow(this::invalidMagicLink);
+        EmailLoginToken loginToken =
+                loginTokens.findByTokenHash(secretTokenService.hash(token)).orElseThrow(this::invalidMagicLink);
         if (loginToken.isExpiredAt(now)) {
             loginTokens.delete(loginToken);
             throw invalidMagicLink();
@@ -114,8 +123,8 @@ public class AuthService {
         if (poetId != null) {
             poets.markSeen(poetId, now, now);
         }
-        UserSession session = sessions.save(new UserSession(
-                secretTokenService.hash(sessionToken), loginToken.getEmail(), poetId, sessionExpiry));
+        UserSession session = sessions.save(
+                new UserSession(secretTokenService.hash(sessionToken), loginToken.getEmail(), poetId, sessionExpiry));
         return new LoginResult(sessionToken, session.getExpiresAt(), poetId != null);
     }
 
@@ -127,8 +136,12 @@ public class AuthService {
                     if (session.getPoetId() != null) {
                         poets.markSeen(session.getPoetId(), now, now.minus(LAST_SEEN_PRECISION));
                     }
-                    return new AuthenticatedUser(session.getId(), session.getAuthenticatedEmail(),
-                            session.getPoetId(), session.getExpiresAt(), isActiveAdmin(session.getPoetId()));
+                    return new AuthenticatedUser(
+                            session.getId(),
+                            session.getAuthenticatedEmail(),
+                            session.getPoetId(),
+                            session.getExpiresAt(),
+                            isActiveAdmin(session.getPoetId()));
                 });
     }
 
@@ -139,10 +152,11 @@ public class AuthService {
     }
 
     private boolean isActiveAdmin(UUID poetId) {
-        return poetId != null && poets.findById(poetId)
-                .filter(poet -> poet.getRole() == PoetRole.ADMIN)
-                .filter(poet -> poet.getAccountStatus() == AccountStatus.ACTIVE)
-                .isPresent();
+        return poetId != null
+                && poets.findById(poetId)
+                        .filter(poet -> poet.getRole() == PoetRole.ADMIN)
+                        .filter(poet -> poet.getAccountStatus() == AccountStatus.ACTIVE)
+                        .isPresent();
     }
 
     @Transactional
@@ -168,6 +182,5 @@ public class AuthService {
         return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This sign-in link is invalid or has expired.");
     }
 
-    record LoginResult(String sessionToken, Instant expiresAt, boolean profileExists) {
-    }
+    record LoginResult(String sessionToken, Instant expiresAt, boolean profileExists) {}
 }

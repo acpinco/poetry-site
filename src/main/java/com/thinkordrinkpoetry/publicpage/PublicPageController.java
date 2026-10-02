@@ -48,19 +48,33 @@ public class PublicPageController {
         website.put("name", "Think or Drink Poetry");
         website.put("url", links.site());
         website.put("description", "A collection of original poetry from independent voices.");
-        model.addAttribute("meta", meta("Original Poetry from Independent Voices",
-                "Discover original poems and poets at Think or Drink Poetry.", links.site() + "/", "website", website));
+        model.addAttribute(
+                "meta",
+                meta(
+                        "Original Poetry from Independent Voices",
+                        "Discover original poems and poets at Think or Drink Poetry.",
+                        links.site() + "/",
+                        "website",
+                        website));
         model.addAttribute("poetCount", catalog.publishedPoetCount());
         model.addAttribute("poems", catalog.recentlyPublished(LANDING_POEM_COUNT));
         return page(model, "landing");
     }
 
-    @GetMapping(value = {"/poems/{poemId}", "/poems/{poemId}/{slug}"}, produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(
+            value = {"/poems/{poemId}", "/poems/{poemId}/{slug}"},
+            produces = MediaType.TEXT_HTML_VALUE)
     public String poem(@PathVariable UUID poemId, Model model) {
         PoemDetail poem = poemById(poemId);
         String canonical = links.poem(poem.poemId(), poem.title());
-        model.addAttribute("meta", meta(poem.title() + " by " + poem.poetDisplayName(), poem.poem(), canonical,
-                "article", poemSchema(poem, canonical)));
+        model.addAttribute(
+                "meta",
+                meta(
+                        poem.title() + " by " + poem.poetDisplayName(),
+                        poem.poem(),
+                        canonical,
+                        "article",
+                        poemSchema(poem, canonical)));
         model.addAttribute("poem", poem);
         model.addAttribute("publishedOn", publishedOn(poem));
         return page(model, "poem");
@@ -74,34 +88,50 @@ public class PublicPageController {
         }
         PoemDetail poem = poemById(poemId);
         String canonical = links.poemOfTheDay();
-        model.addAttribute("meta", meta("Poem of the Day: " + poem.title() + " by " + poem.poetDisplayName(),
-                "Today’s featured poem: " + poem.title() + " by " + poem.poetDisplayName() + ".", canonical,
-                "article", poemSchema(poem, canonical)));
+        model.addAttribute(
+                "meta",
+                meta(
+                        "Poem of the Day: " + poem.title() + " by " + poem.poetDisplayName(),
+                        "Today’s featured poem: " + poem.title() + " by " + poem.poetDisplayName() + ".",
+                        canonical,
+                        "article",
+                        poemSchema(poem, canonical)));
         model.addAttribute("poem", poem);
         return page(model, "poem-of-the-day");
     }
 
-    @GetMapping(value = {"/poets/{poetId}", "/poets/{poetId}/{slug}"}, produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(
+            value = {"/poets/{poetId}", "/poets/{poetId}/{slug}"},
+            produces = MediaType.TEXT_HTML_VALUE)
     public String poet(@PathVariable UUID poetId, Model model) {
         PoetSummary poet = publishedPoet(poetId);
         String canonical = links.poet(poet.poetId(), poet.displayName());
-        model.addAttribute("meta", meta(poet.displayName() + " poems",
-                hasBio(poet) ? poet.bio() : "Read poems by " + poet.displayName() + ".", canonical, "profile",
-                personSchema(poet, canonical)));
+        model.addAttribute(
+                "meta",
+                meta(
+                        poet.displayName() + " poems",
+                        hasBio(poet) ? poet.bio() : "Read poems by " + poet.displayName() + ".",
+                        canonical,
+                        "profile",
+                        personSchema(poet, canonical)));
         model.addAttribute("poet", poet);
         model.addAttribute("hasBio", hasBio(poet));
         model.addAttribute("poems", catalog.poemsByPoetByPublication(poetId));
         return page(model, "poet");
     }
 
-    @GetMapping(value = {"/poets/{poetId}/bio", "/poets/{poetId}/{slug}/bio"}, produces = MediaType.TEXT_HTML_VALUE)
-    public String poetBio(@PathVariable UUID poetId,
-            @RequestParam(name = "poem", required = false) UUID returnToPoemId, Model model) {
+    @GetMapping(
+            value = {"/poets/{poetId}/bio", "/poets/{poetId}/{slug}/bio"},
+            produces = MediaType.TEXT_HTML_VALUE)
+    public String poetBio(
+            @PathVariable UUID poetId,
+            @RequestParam(name = "poem", required = false) UUID returnToPoemId,
+            Model model) {
         PoetSummary poet = publishedPoet(poetId);
         String canonical = links.poetBio(poet.poetId(), poet.displayName());
         String bio = hasBio(poet) ? poet.bio() : poet.displayName() + " has not added a biography yet.";
-        model.addAttribute("meta", meta(poet.displayName() + " bio", bio, canonical, "profile",
-                personSchema(poet, canonical)));
+        model.addAttribute(
+                "meta", meta(poet.displayName() + " bio", bio, canonical, "profile", personSchema(poet, canonical)));
         model.addAttribute("poet", poet);
         model.addAttribute("bio", bio);
         model.addAttribute("returnToPoemId", returnToPoemId);
@@ -111,9 +141,8 @@ public class PublicPageController {
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
     @ResponseBody
     public String sitemap() {
-        Stream<SitemapUrl> fixed = Stream.of(
-                new SitemapUrl(links.site() + "/", null),
-                new SitemapUrl(links.poemOfTheDay(), null));
+        Stream<SitemapUrl> fixed =
+                Stream.of(new SitemapUrl(links.site() + "/", null), new SitemapUrl(links.poemOfTheDay(), null));
         Stream<SitemapUrl> poems = catalog.poemsForSitemap().stream()
                 .map(item -> new SitemapUrl(links.poem(item.id(), item.name()), item.lastModified()));
         Stream<SitemapUrl> poets = catalog.poetsForSitemap().stream()
@@ -170,11 +199,17 @@ public class PublicPageController {
         return catalog.publishedPoet(poetId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    private PageMeta meta(String title, String description, String canonicalUrl, String openGraphType,
+    private PageMeta meta(
+            String title,
+            String description,
+            String canonicalUrl,
+            String openGraphType,
             Map<String, Object> structuredData) {
         // Embedded in a <script> element, so "<" must never appear literally (it could close the tag).
         String jsonLd = json.writeValueAsString(structuredData)
-                .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026");
+                .replace("<", "\\u003c")
+                .replace(">", "\\u003e")
+                .replace("&", "\\u0026");
         return new PageMeta(title, summary(description), canonicalUrl, openGraphType, jsonLd);
     }
 
@@ -215,9 +250,7 @@ public class PublicPageController {
     /** A one-line summary for meta descriptions, which search engines truncate around this length. */
     private static String summary(String value) {
         String compact = value.replaceAll("\\s+", " ").trim();
-        return compact.length() <= DESCRIPTION_LENGTH
-                ? compact
-                : compact.substring(0, DESCRIPTION_LENGTH - 3) + "...";
+        return compact.length() <= DESCRIPTION_LENGTH ? compact : compact.substring(0, DESCRIPTION_LENGTH - 3) + "...";
     }
 
     /** Page-level metadata rendered into the shared layout's head. */

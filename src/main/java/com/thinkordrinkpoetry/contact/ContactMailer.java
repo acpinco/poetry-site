@@ -15,7 +15,9 @@ class ContactMailer {
     private final String from;
     private final String recipient;
 
-    ContactMailer(JavaMailSender mailSender, @Value("${app.mail.from}") String from,
+    ContactMailer(
+            JavaMailSender mailSender,
+            @Value("${app.mail.from}") String from,
             @Value("${app.contact.to}") String recipient) {
         this.mailSender = mailSender;
         this.from = from;

@@ -18,9 +18,8 @@ class PublicDiscoveryRateLimiterTest {
             assertDoesNotThrow(() -> rateLimiter.check("127.0.0.1", true));
         }
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> rateLimiter.check("127.0.0.1", true));
+        ResponseStatusException exception =
+                assertThrows(ResponseStatusException.class, () -> rateLimiter.check("127.0.0.1", true));
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatusCode());
     }
