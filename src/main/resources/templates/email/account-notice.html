@@ -1,0 +1,5 @@
+<div xmlns:th="http://www.thymeleaf.org" th:replace="~{email/frame :: frame(${subject}, ~{::content})}">
+<th:block th:fragment="content">
+<p style="margin:0;color:#e4ddd0;font:16px Georgia,serif;line-height:1.6" th:text="${text}"></p>
+</th:block>
+</div>

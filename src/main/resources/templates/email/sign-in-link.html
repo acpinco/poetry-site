@@ -1,0 +1,7 @@
+<div xmlns:th="http://www.thymeleaf.org" th:replace="~{email/frame :: frame('Your sign-in link is ready', ~{::content})}">
+<th:block th:fragment="content">
+<p style="margin:0;color:#e4ddd0;font:16px Georgia,serif;line-height:1.6" th:text="|Use the button below to enter Think or Drink Poetry. It expires in ${minutes} minutes.|"></p>
+<p style="margin:28px 0;text-align:center"><a th:href="${url}" style="display:inline-block;padding:14px 24px;background:linear-gradient(135deg,#c9a84c,#a8872d);color:#080a0f;text-decoration:none;font-family:Georgia,serif;font-weight:bold;letter-spacing:.08em">TAKE FLIGHT</a></p>
+<p style="margin:0;color:#8b8992;font:13px Georgia,serif;line-height:1.5">If the button does not work, copy this link into your browser:<br><a th:href="${url}" th:text="${url}" style="color:#e8c97a;word-break:break-all"></a></p>
+</th:block>
+</div>

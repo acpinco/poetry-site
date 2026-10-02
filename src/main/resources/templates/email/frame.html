@@ -1,0 +1,8 @@
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="frame(heading, content)" style="margin:0;padding:32px 16px;background:#080a0f;color:#e4ddd0"><div style="max-width:560px;margin:auto;padding:36px;background:linear-gradient(160deg,#161a27,#0e1018);border:1px solid #2a2840">
+<div style="height:1px;background:linear-gradient(90deg,transparent,#c9a84c,transparent);margin-bottom:28px"></div>
+<p style="text-align:center;margin:0 0 20px"><img src="cid:raven-logo" alt="Think or Drink Poetry" style="width:260px;max-width:100%;height:auto"></p>
+<p style="margin:0 0 26px;text-align:center;color:#8b8992;font:italic 14px Georgia,serif">Where poets find their voice in shadow and light.</p>
+<h1 style="margin:0 0 16px;color:#e4ddd0;text-align:center;font:600 24px Georgia,serif" th:text="${heading}">Heading</h1>
+<th:block th:replace="${content}"></th:block>
+<div style="height:1px;background:linear-gradient(90deg,transparent,#c9a84c,transparent);margin-top:30px"></div>
+</div></div>
