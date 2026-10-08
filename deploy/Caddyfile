@@ -47,6 +47,11 @@
         reverse_proxy app:8080
     }
 
+    # The index of all poets; "/poets/*" below does not match the bare path.
+    handle /poets {
+        reverse_proxy app:8080
+    }
+
     handle /poets/* {
         reverse_proxy app:8080
     }

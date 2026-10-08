@@ -15,9 +15,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.thinkordrinkpoetry.PoetrySiteApplication;
+import jakarta.servlet.http.Cookie;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDate;
+import java.util.HexFormat;
 import java.util.UUID;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
@@ -237,6 +241,30 @@ class PublicCatalogIntegrationTest {
     }
 
     @Test
+    void poetIndexLinksEveryPoetWithPoemsAndIsLinkedFromOtherPages() throws Exception {
+        String page = mockMvc.perform(get("/poets"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("All Poets, A to Z | Think or Drink Poetry")))
+                .andExpect(content()
+                        .string(containsString("<link rel=\"canonical\" href=\"http://localhost:5173/poets\">")))
+                .andExpect(content().string(containsString("2 poets, A to Z")))
+                .andExpect(content().string(containsString("<span>2 poems</span>")))
+                .andExpect(content().string(containsString("<span>1 poem</span>")))
+                .andExpect(content().string(not(containsString(empty.toString()))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(page.indexOf("href=\"http://localhost:5173/poets/" + maya + "/caged-bird\""))
+                .isPositive()
+                .isLessThan(page.indexOf("href=\"http://localhost:5173/poets/" + robert + "/robert-frost\""));
+
+        for (String path : new String[] {"/", "/poems/" + road, "/poets/" + robert}) {
+            mockMvc.perform(get(path))
+                    .andExpect(content().string(containsString("href=\"http://localhost:5173/poets\"")));
+        }
+    }
+
+    @Test
     void bioPageFallsBackWhenThePoetHasNoBio() throws Exception {
         mockMvc.perform(get("/poets/{id}/robert-frost/bio", robert).param("poem", road.toString()))
                 .andExpect(status().isOk())
@@ -255,6 +283,29 @@ class PublicCatalogIntegrationTest {
                         .string(containsString(
                                 "<meta property=\"og:image\" content=\"http://localhost:5173/share.png\">")))
                 .andExpect(content().string(containsString("href=\"http://localhost:5173/sign-in?join=1\"")));
+    }
+
+    @Test
+    void landingPageOffersSignInOnlyToVisitorsWhoAreNotSignedIn() throws Exception {
+        String signIn = "href=\"http://localhost:5173/sign-in\"";
+        mockMvc.perform(get("/"))
+                .andExpect(content().string(containsString(signIn)))
+                .andExpect(content().string(not(containsString("You’re signed in"))));
+
+        String token = "landing-test-session";
+        String hash = HexFormat.of()
+                .formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8)));
+        jdbc.update("""
+                insert into user_session (session_token_hash, authenticated_email, poet_id, expires_at)
+                values (?, 'maya@example.test', ?, now() + interval '1 day')
+                """, hash, maya);
+        mockMvc.perform(get("/").cookie(new Cookie("poetry_session", token)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("You’re signed in")))
+                .andExpect(content().string(containsString("href=\"http://localhost:5173/home?view=all\"")))
+                .andExpect(content().string(containsString("href=\"http://localhost:5173/home?view=mine\"")))
+                .andExpect(content().string(containsString("href=\"http://localhost:5173/my-poems/new\"")))
+                .andExpect(content().string(not(containsString(signIn))));
     }
 
     @Test
@@ -285,6 +336,7 @@ class PublicCatalogIntegrationTest {
     void sitemapListsPoemsPoetsAndOnlyBiosThatExist() throws Exception {
         mockMvc.perform(get("/sitemap.xml"))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<loc>http://localhost:5173/poets</loc>")))
                 .andExpect(content().string(containsString("/poems/" + road + "/road</loc>")))
                 .andExpect(content().string(containsString("/poets/" + robert + "/robert-frost</loc>")))
                 .andExpect(content().string(containsString("/poets/" + maya + "/caged-bird/bio</loc>")))

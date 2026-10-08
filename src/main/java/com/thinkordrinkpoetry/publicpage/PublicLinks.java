@@ -30,6 +30,18 @@ public class PublicLinks {
         return poemId == null ? home() : home() + "?poem=" + poemId;
     }
 
+    public String allPoems() {
+        return home() + "?view=all";
+    }
+
+    public String myPoems() {
+        return home() + "?view=mine";
+    }
+
+    public String newPoem() {
+        return siteUrl + "/my-poems/new";
+    }
+
     public String signIn() {
         return siteUrl + "/sign-in";
     }
@@ -62,6 +74,11 @@ public class PublicLinks {
 
     public String poetImage(UUID poetId) {
         return siteUrl + "/poets/" + poetId + "/share.png";
+    }
+
+    /** The index of every published poet. */
+    public String poets() {
+        return siteUrl + "/poets";
     }
 
     public String poet(UUID poetId, String name) {

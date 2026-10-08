@@ -1,5 +1,6 @@
 package com.thinkordrinkpoetry.publicpage;
 
+import com.thinkordrinkpoetry.auth.AuthenticatedUser;
 import com.thinkordrinkpoetry.discovery.PoemCatalog;
 import com.thinkordrinkpoetry.discovery.PoemCatalog.PoemDetail;
 import com.thinkordrinkpoetry.discovery.PoemCatalog.PoetSummary;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,7 +48,7 @@ public class PublicPageController {
     }
 
     @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
-    public String landing(Model model) {
+    public String landing(@AuthenticationPrincipal AuthenticatedUser user, Model model) {
         Map<String, Object> website = schema("WebSite");
         website.put("name", "Think or Drink Poetry");
         website.put("url", links.site());
@@ -62,6 +64,8 @@ public class PublicPageController {
                         website));
         List<RecentPoemSummary> newThisWeek = catalog.publishedThisWeek(LANDING_POEM_COUNT);
         Set<UUID> shown = newThisWeek.stream().map(RecentPoemSummary::poemId).collect(Collectors.toSet());
+        // Safe to vary by visitor: these pages are sent no-store, so no shared cache keeps a copy.
+        model.addAttribute("signedIn", user != null);
         model.addAttribute("poetCount", catalog.publishedPoetCount());
         model.addAttribute("newThisWeek", newThisWeek);
         model.addAttribute(
@@ -123,6 +127,26 @@ public class PublicPageController {
         return page(model, "poem-of-the-day");
     }
 
+    /** Every poet on one page, so crawlers can reach each poet (and through them each poem) by following links. */
+    @GetMapping(value = "/poets", produces = MediaType.TEXT_HTML_VALUE)
+    public String poets(Model model) {
+        String canonical = links.poets();
+        Map<String, Object> collection = schema("CollectionPage");
+        collection.put("name", "Poets at Think or Drink Poetry");
+        collection.put("url", canonical);
+        model.addAttribute(
+                "meta",
+                meta(
+                        "All Poets, A to Z",
+                        "Every poet published at Think or Drink Poetry, listed alphabetically with links to their poems.",
+                        canonical,
+                        "website",
+                        links.siteImage(),
+                        collection));
+        model.addAttribute("poets", catalog.publishedPoets());
+        return page(model, "poets");
+    }
+
     @GetMapping(
             value = {"/poets/{poetId}", "/poets/{poetId}/{slug}"},
             produces = MediaType.TEXT_HTML_VALUE)
@@ -172,8 +196,10 @@ public class PublicPageController {
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
     @ResponseBody
     public String sitemap() {
-        Stream<SitemapUrl> fixed =
-                Stream.of(new SitemapUrl(links.site() + "/", null), new SitemapUrl(links.poemOfTheDay(), null));
+        Stream<SitemapUrl> fixed = Stream.of(
+                new SitemapUrl(links.site() + "/", null),
+                new SitemapUrl(links.poets(), null),
+                new SitemapUrl(links.poemOfTheDay(), null));
         Stream<SitemapUrl> poems = catalog.poemsForSitemap().stream()
                 .map(item -> new SitemapUrl(links.poem(item.id(), item.name()), item.lastModified()));
         Stream<SitemapUrl> poets = catalog.poetsForSitemap().stream()

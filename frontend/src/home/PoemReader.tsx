@@ -141,9 +141,15 @@ export function HomeFooter({
     <footer
       className={`flex shrink-0 items-center justify-between gap-4 border-t border-line-soft bg-panel px-4 py-3 text-xs ${compact ? "" : "sm:px-7"}`}
     >
-      <a href="/" className="text-gold hover:text-gold-light">
-        {compact ? "About" : "About Think or Drink Poetry"}
-      </a>
+      <nav className="flex items-center gap-4">
+        <a href="/" className="text-gold hover:text-gold-light">
+          {compact ? "About" : "About Think or Drink Poetry"}
+        </a>
+        {/* A server-rendered page, so a plain link rather than a client-side route. */}
+        <a href="/poets" className="text-gold hover:text-gold-light">
+          All poets
+        </a>
+      </nav>
       {viewer && (
         <button
           type="button"

@@ -5,11 +5,16 @@
 <p class="eyebrow">Think or Drink Poetry</p>
 <h1>Original poems, shared in shadow and light.</h1>
 <p>Discover a living collection of original poetry from independent voices. Read a poem, find a poet, and return whenever a line stays with you.</p>
-<p class="actions"><a class="button" th:href="${links.home()}">Explore the poetry</a><a class="button secondary" th:href="${links.join()}">Share your poems</a><a class="button secondary" th:href="${links.signIn()}">Sign in</a></p>
+<p class="actions" th:unless="${signedIn}"><a class="button" th:href="${links.home()}">Explore the poetry</a><a class="button secondary" th:href="${links.join()}">Share your poems</a><a class="button secondary" th:href="${links.signIn()}">Sign in</a></p>
+<th:block th:if="${signedIn}">
+<p class="date">You’re signed in</p>
+<p class="actions"><a class="button" th:href="${links.allPoems()}">Read the poetry</a><a class="button secondary" th:href="${links.myPoems()}">My poems</a><a class="button secondary" th:href="${links.newPoem()}">Write a new poem</a></p>
+</th:block>
 </header>
 <section>
 <h2>A library of poets</h2>
 <p th:text="|Browse poems by ${poetCount} poets, search by title or phrase, and follow each poet’s work.|"></p>
+<p><a th:href="${links.poets()}">See every poet, A to Z →</a></p>
 </section>
 <section th:unless="${newThisWeek.isEmpty()}">
 <h2>New this week</h2>

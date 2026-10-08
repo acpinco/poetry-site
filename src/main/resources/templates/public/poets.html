@@ -1,0 +1,13 @@
+<!doctype html>
+<html th:replace="~{public/layout :: page(~{::content})}" xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="content">
+<article>
+<h1>Poets</h1>
+<p th:text="|${poets.size()} poets, A to Z. Choose a name to read their poems.|"></p>
+<ul>
+<li th:each="poet : ${poets}"><a th:href="${links.poet(poet.poetId, poet.displayName)}" th:text="${poet.displayName}"></a> <span th:text="${poet.poemCount == 1} ? '1 poem' : |${poet.poemCount} poems|"></span></li>
+</ul>
+</article>
+<th:block th:replace="~{public/invite :: invite}"></th:block>
+</th:block>
+</html>
