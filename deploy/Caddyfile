@@ -1,4 +1,11 @@
 :80 {
+    # The site moved from poetry.timberlinelab.com to poetry.avourlabs.com in
+    # November 2026. The tunnel still routes the old hostname here; send it on
+    # permanently, keeping the path and query, until timberlinelab.com expires.
+    # Remove this (and the old tunnel hostname) once it has.
+    @legacyHost host poetry.timberlinelab.com
+    redir @legacyHost https://poetry.avourlabs.com{uri} permanent
+
     encode zstd gzip
 
     # Security headers for every response. Spring Security already sends most of
