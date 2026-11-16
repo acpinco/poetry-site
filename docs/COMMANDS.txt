@@ -147,13 +147,13 @@ PUBLIC API AND EMAIL VERIFICATION
 
 Description: Open the public Swagger landing page through Cloudflare Tunnel.
 
-https://poetry.timberlinelab.com/swagger-ui.html
+https://poetry.avourlabs.com/swagger-ui.html
 
 ---------
 
 Description: Request a production sign-in email without Swagger. Only addresses that already belong to a poet receive an email; unknown addresses also return HTTP 204 but nothing is sent. New accounts must use the website's Create an account form, which requires the Cloudflare Turnstile check. Replace the sample recipient with an address you are authorized to test.
 
-curl -i -X POST 'https://poetry.timberlinelab.com/api/auth/magic-links' \
+curl -i -X POST 'https://poetry.avourlabs.com/api/auth/magic-links' \
   -H 'Content-Type: application/json' \
   -d '{"email":"you@example.com"}'
 
@@ -161,7 +161,7 @@ curl -i -X POST 'https://poetry.timberlinelab.com/api/auth/magic-links' \
 
 Description: The production mail sender configuration required for Resend. This belongs in the server-only .env.production file, never Git. The sender domain must be verified in Resend.
 
-MAIL_FROM=Think or Drink Poetry <noreply@poetry.timberlinelab.com>
+MAIL_FROM=Think or Drink Poetry <noreply@poetry.avourlabs.com>
 
 
 CLOUDFLARE TUNNEL

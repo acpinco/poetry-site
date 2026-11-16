@@ -107,7 +107,7 @@ Internet -> Cloudflare -> cloudflared -> 127.0.0.1:8081 -> Docker Caddy -> appli
    curl -iL http://127.0.0.1:8081/swagger-ui.html
    ```
 
-6. Confirm https://poetry.timberlinelab.com/swagger-ui.html loads publicly.
+6. Confirm https://poetry.avourlabs.com/swagger-ui.html loads publicly.
 
 For an update, pull the reviewed Git commit first, then rerun the script:
 
